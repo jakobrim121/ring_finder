@@ -8,12 +8,16 @@ from tempfile import TemporaryDirectory
 
 import numpy as np
 
+from .counting import DEFAULT_TRACK_COUNTING
+
 
 def fit_event(
     pmt_ids, charges_pe, times_ns, *, incoming_particle, event_id=0,
     pmt_id_space="wcte", survey=None, prompt_window_ns=None, clock_decimals=None,
+    min_track_pmts=DEFAULT_TRACK_COUNTING.min_track_pmts,
+    track_merge_angle_deg=DEFAULT_TRACK_COUNTING.track_merge_angle_deg,
 ):
-    """Return fit arrays and ring count without changing the calling kernel's survey."""
+    """Return fit arrays and ring count using the counting options from fit_hits."""
     with TemporaryDirectory(prefix="wcte-event-") as directory:
         source, output = Path(directory) / "digits.npz", Path(directory) / "fit"
         ids = np.asarray(pmt_ids)
@@ -24,6 +28,8 @@ def fit_event(
             sys.executable, "-m", "wcte", "--input", str(source), "--output", str(output),
             "--incoming-particle", incoming_particle, "--event-id", str(event_id),
             "--pmt-id-space", pmt_id_space,
+            "--min-track-pmts", str(min_track_pmts),
+            "--track-merge-angle-deg", str(track_merge_angle_deg),
         ]
         if survey is not None:
             command.extend(("--survey", str(Path(survey).resolve(strict=True))))
