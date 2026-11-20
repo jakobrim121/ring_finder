@@ -13,6 +13,7 @@ from gated_photon_time import series
 from junction_coordinates import Junction
 from source import raw
 from track_coordinates import fit as fit_chart
+from wcte.counting import track_counting
 
 
 @njit(cache=True)
@@ -43,6 +44,8 @@ class BelowSupport(Bare):
     def __init__(self, ids, charges, background, particles, section, order):
         super().__init__(ids, charges, background, particles, 4, order)
         self.section = section
+        # Leave a small margin between the solver target and the counting cut.
+        self.support_limit = max(0.0, track_counting.get().min_track_pmts - 0.1)
         self.countable_cache = None
 
     def primary_light(self, x):
@@ -83,7 +86,7 @@ class BelowSupport(Bare):
     def all_constraints(self, x):
         margin, jac = super().all_constraints(x)
         support, gradient = self.support(x)
-        return np.r_[margin, (29.9 - support) / 100.0], np.vstack([jac, -gradient / 100.0])
+        return np.r_[margin, (self.support_limit - support) / 100.0], np.vstack([jac, -gradient / 100.0])
 
 
 def fit(model, state, section, order, budget, *, target_count=1, timed_event=None, spread=False):
@@ -91,12 +94,13 @@ def fit(model, state, section, order, budget, *, target_count=1, timed_event=Non
     n = len(model.particles)
     if n < target_count + 1 or (timed_event is None and n != 2):
         return None
+    minimum = track_counting.get().min_track_pmts
     args = model.active[model.ix], model.q, model.bg, model.particles, section
     coarse = BelowSupport(*args, order)
     initial = state["parameters"]
     original = coarse(initial, True)["ll"]
     initial_support = coarse.support(initial)[0]
-    if initial_support < 30.0:
+    if initial_support < minimum:
         return None
     chart = Junction(coarse, initial)
     result, x = fit_chart(
@@ -111,12 +115,12 @@ def fit(model, state, section, order, budget, *, target_count=1, timed_event=Non
     final = fine(x, True)
     support = fine.support(x)[0]
     error = abs(final["ll"] - score)
-    if error >= 0.01 or support >= 30.0:
+    if error >= 0.01 or support >= minimum:
         return None
     if n == 2:
         share = final["posterior"][2 - section]
         remaining = float(np.sum(1.0 - fine.obs.no_source(final["means_hit"], share)))
-        if remaining < 30.0 or not np.any(share > 0.5):
+        if remaining < minimum or not np.any(share > 0.5):
             return None
     else:
         from chain_comparison import counted

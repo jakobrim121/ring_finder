@@ -9,6 +9,7 @@ from time import process_time
 
 from . import engine
 from .api import PARTICLES, PMT_ID_SPACES, fit_hits
+from .counting import DEFAULT_TRACK_COUNTING, TrackCounting
 
 
 def write_json(path, value):
@@ -63,7 +64,8 @@ def read_jobs(args, parser):
     """Resolve manifest paths before creating worker processes."""
     out = args.output.resolve()
     options = dict(pmt_id_space=args.pmt_id_space, prompt_window_ns=args.prompt_window_ns,
-                   clock_decimals=args.clock_decimals)
+                   clock_decimals=args.clock_decimals, min_track_pmts=args.min_track_pmts,
+                   track_merge_angle_deg=args.track_merge_angle_deg)
     if out.exists() or args.workers < 1:
         parser.error("Use a new output directory and one or more workers")
     if args.input:
@@ -101,9 +103,17 @@ def main(argv=None):
     parser.add_argument("--survey", type=Path, help="Run-specific active PMTs and detector positions")
     parser.add_argument("--prompt-window-ns", type=float, nargs=2, metavar=("LOW", "HIGH"))
     parser.add_argument("--clock-decimals", type=int, help="Round median-relative times after prompt selection")
+    parser.add_argument("--min-track-pmts", type=float, default=DEFAULT_TRACK_COUNTING.min_track_pmts,
+                        help="Minimum effective PMT support for a counted track section (default %(default)g)")
+    parser.add_argument("--track-merge-angle-deg", type=float, default=DEFAULT_TRACK_COUNTING.track_merge_angle_deg,
+                        help="Maximum turn to count connected track sections together (default %(default)g degrees)")
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--workers", type=int, default=1)
     args = parser.parse_args(argv)
+    try:
+        TrackCounting(args.min_track_pmts, args.track_merge_angle_deg)
+    except ValueError as error:
+        parser.error(str(error))
     jobs = read_jobs(args, parser)
     if args.survey is not None:
         os.environ["WCTE_SURVEY"] = str(args.survey.resolve(strict=True))

@@ -2,6 +2,7 @@
 
 from contextlib import nullcontext
 
+from .counting import DEFAULT_TRACK_COUNTING, TrackCounting, use_track_counting
 from .engine import initialize
 from .pipeline import reconstruct
 
@@ -13,6 +14,8 @@ PMT_ID_SPACES = ("wcte", "wcsim")
 def fit_hits(
     pmt_ids, charges_pe, times_ns, *, incoming_particle, event_id=0,
     pmt_id_space="wcte", prompt_window_ns=None, clock_decimals=None,
+    min_track_pmts=DEFAULT_TRACK_COUNTING.min_track_pmts,
+    track_merge_angle_deg=DEFAULT_TRACK_COUNTING.track_merge_angle_deg,
 ):
     """Return the prediction, optical hypotheses, and review diagnostics.
 
@@ -20,11 +23,17 @@ def fit_hits(
     tube IDs for WCSim. Use PE and ns. The default window is located around
     the prompt peak. A supplied [low, high) window is used as-is by the
     timing likelihood. No event selection is performed.
+
+    Fitted track sections are counted using their effective PMT support.
+    Adjacent sections can share one ring if their estimated turn is at
+    most track_merge_angle_deg. Optical and timing evidence is also used
+    to select the final ring hypothesis.
     """
     if incoming_particle not in PARTICLES:
         raise ValueError(f"Unsupported incoming particle {incoming_particle!r}")
     if pmt_id_space not in PMT_ID_SPACES:
         raise ValueError(f"Unsupported PMT ID space {pmt_id_space!r}")
+    counting = TrackCounting(min_track_pmts, track_merge_angle_deg)
     initialize()
     import numpy as np
 
@@ -36,10 +45,15 @@ def fit_hits(
         from native_optics import enabled
 
         optics = enabled()
-    with optics as acceleration:
+    with optics as acceleration, use_track_counting(counting):
         prediction, detail, comparison = reconstruct(raw, event_id, incoming_particle)
     if acceleration is not None:
         comparison["native_optics"] = acceleration
+    if counting != DEFAULT_TRACK_COUNTING:
+        comparison["track_counting"] = dict(
+            min_track_pmts=counting.min_track_pmts,
+            track_merge_angle_deg=counting.track_merge_angle_deg,
+        )
 
     # Column zero is background, and each pulse's measured charge is conserved.
     fractions = prediction["fractions"]

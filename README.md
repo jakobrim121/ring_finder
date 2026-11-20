@@ -66,6 +66,35 @@ process. The notebook uses `wcte.session.fit_event` to run simulation and a
 surveyed detector in separate processes within the same kernel environment.
 Set `WCTE_NUMBA_CACHE` to choose where compiled kernels are cached.
 
+### Choose the track-counting thresholds
+
+Both `fit_hits` and the notebook's `fit_event` accept the same options. To
+try a lower support threshold and separate smaller turns, pass:
+
+```python
+prediction, optical, reviews = fit_hits(
+    pmt_ids, charges_pe, times_ns, incoming_particle="pion",
+    min_track_pmts=25.0, track_merge_angle_deg=10.0,
+)
+```
+
+- `min_track_pmts` defaults to 30. The physical track counter sums the
+  estimated probabilities that each observed PMT received at least one
+  photoelectron from the section. This effective PMT count can be
+  fractional. A section below the threshold is ineligible for its own
+  ring column. Charge omitted by the counter goes into the background
+  remainder in that candidate.
+- `track_merge_angle_deg` defaults to 15°. Two adjacent, supported sections
+  of a connected trajectory share a ring column when the estimated turn is
+  at or below this angle.
+
+The support threshold must be positive and the merge angle can range from
+0° to 180°. These options apply during charged-track counting. The final
+hypothesis still depends on the optical, timing, and calibrated review
+evidence. Changing a threshold can change which hypothesis wins, so the
+final count follows the selected hypothesis. Independently fitted light
+sources may have no estimated track-to-track turn.
+
 ## From the command line
 
 ```sh
@@ -79,7 +108,9 @@ to WCSim IDs. Use `--pmt-id-space wcte` for WCTE IDs and `--survey FILE` for a
 run-specific survey. Use `--events MANIFEST.json` for a JSON object with an
 `events` list. Each row has `file`, `event`, and `incoming_particle`.
 Paths are relative to the manifest. `--workers N` runs independent events
-in separate processes.
+in separate processes. Use `--min-track-pmts 25 --track-merge-angle-deg 10`
+to apply custom track-counting thresholds to all events in a run. Custom
+thresholds are recorded in each `comparison.json`.
 
 | Output | Contents |
 | --- | --- |

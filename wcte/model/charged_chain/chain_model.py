@@ -11,6 +11,8 @@ from pathlib import Path
 import sys
 import numpy as np
 
+from wcte.counting import track_counting
+
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "conversion_detector"))
 from detector_model import Electron
@@ -159,23 +161,30 @@ class Model(Electron):
         )
 
 
-def counted(model, state):
-    """Keep the existing support-first, 15-degree connected-lineage convention."""
+def counted_groups(model, state):
+    """Group supported cores along the fitted trajectory in section order."""
+    counting = track_counting.get()
     cores = state["posterior"][1:]
     support = [(1 - model.obs.no_source(state["means_hit"], core)).sum() for core in cores]
-    keep = {j for j, value in enumerate(support) if value >= 30}
+    keep = {j for j, value in enumerate(support) if value >= counting.min_track_pmts}
     groups = [[j] for j in range(len(cores)) if j in keep]
     mapped = paths(state["parameters"][: model.ng])
     for j, ((a, _), (b, _)) in enumerate(zip(mapped, mapped[1:])):
         incoming = trajectory(a, np.array([1.0]))[1][0]
         outgoing = b[3:6] / np.linalg.norm(b[3:6])
-        if j in keep and j + 1 in keep and incoming @ outgoing >= np.cos(np.deg2rad(15.0)):
+        if j in keep and j + 1 in keep and incoming @ outgoing >= counting.merge_cosine:
             left = next(group for group in groups if j in group)
             right = next(group for group in groups if j + 1 in group)
             if left is not right:
                 left.extend(right)
                 groups.remove(right)
-    selected = [cores[group].sum(0) for group in groups]
+    return groups
+
+
+def counted(model, state):
+    """Return one shared-charge column per ring plus a background column."""
+    cores = state["posterior"][1:]
+    selected = [cores[group].sum(0) for group in counted_groups(model, state)]
     return (
         np.vstack([1 - np.sum(selected, axis=0), *selected]).T
         if selected

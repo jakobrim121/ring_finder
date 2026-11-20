@@ -12,6 +12,7 @@ counted only if the existing observed-PMT support requirement is satisfied.
 
 import numpy as np
 from scipy.optimize import nnls
+from wcte.counting import track_counting
 from single_background import primary_inequality_jacobian
 from readout import observation, parameters
 from wctering.likelihood.geometry import active_geometry, BOX
@@ -274,21 +275,22 @@ class Model:
 
 
 def counted(model, state):
-    """Apply the unchanged support and connected-lineage counting rules.
+    """Count supported cores using the event's track-counting rule.
 
     Conversion siblings are separate charged sources. Only the two connected
-    primary legs may merge under the existing 15-degree lineage convention.
+    primary legs may merge when their estimated turn is small enough.
     The low-energy parts remain background even when their parent is counted.
     """
     from curved_legs import core_axes
 
+    counting = track_counting.get()
     cores = state["posterior"][1:]
     support = [float((1 - model.obs.no_source(state["means_hit"], core)).sum()) for core in cores]
-    keep = [j for j, value in enumerate(support) if value >= 30]
+    keep = [j for j, value in enumerate(support) if value >= counting.min_track_pmts]
     merge = False
     if model.connected and 0 in keep and 1 in keep:
         a, b = core_axes(state["parameters"][:21])
-        merge = a @ b / (np.linalg.norm(a) * np.linalg.norm(b)) >= np.cos(np.deg2rad(15.0))
+        merge = a @ b / (np.linalg.norm(a) * np.linalg.norm(b)) >= counting.merge_cosine
     selected = []
     for j in keep:
         if merge and j == 1:
