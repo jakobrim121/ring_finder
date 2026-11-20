@@ -2,10 +2,8 @@
 
 import numpy as np
 
-from chain_sources import paths
 from charge_starts import weighted_quantile
 from coherent_partition import prediction_time
-from source import trajectory
 
 
 def prompt_weights(event, fractions, times, visible):
@@ -32,23 +30,10 @@ def prompt_weights(event, fractions, times, visible):
 
 def section_mapping(model, state, proposal):
     """Recover the counted columns of a serial trajectory from its cores."""
+    from chain_model import counted_groups
+
     cores = state["posterior"][1:].T
-    support = [float(np.sum(1.0 - model.obs.no_source(state["means_hit"], f))) for f in cores.T]
-    active = {j for j, value in enumerate(support) if value >= 30.0}
-    groups = [[j] for j in sorted(active)]
-    mapped = paths(state["parameters"][: model.ng])
-    threshold = np.cos(np.deg2rad(15.0))
-    for j, ((incoming, _), (outgoing, _)) in enumerate(zip(mapped, mapped[1:])):
-        if j not in active or j + 1 not in active:
-            continue
-        direction = trajectory(incoming, np.array([1.0]))[1][0]
-        if direction @ outgoing[3:6] < threshold:
-            continue
-        first = next(r for r in groups if j in r)
-        second = next(r for r in groups if j + 1 in r)
-        if first is not second:
-            first.extend(second)
-            groups.remove(second)
+    groups = counted_groups(model, state)
     if len(groups) != proposal.shape[1] - 1 or not all(
         np.allclose(cores[:, group].sum(1), proposal[:, j + 1], atol=2e-14, rtol=0)
         for j, group in enumerate(groups)
