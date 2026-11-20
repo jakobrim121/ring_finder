@@ -1,0 +1,15 @@
+{
+  "training_sources": [
+    "learned_from_eos_followup_and_eos_transfer_parameters",
+    "learned_from_eos_prevalidation_and_eos_followup_parameters",
+    "learned_from_eos_prevalidation_and_eos_transfer_parameters"
+  ],
+  "source_model_sha256": [
+    "0244394f8c2d589bca5d14da556071957dee61ae564fa9cb5ec094ad89e77a9b",
+    "1e9882cbbb2d62facd14033ce28ad0243540038d2b9b5d913d6a7bd3fa33605e",
+    "99e9d5994ffa472feb5e35af2057a033e7a247ed7497c67f18c1bae2017a4dfb"
+  ],
+  "no_event_keys": true,
+  "input": "Surveyed PMT positions and measured charge and time with supplied incident species",
+  "holdout_control_only": null
+}

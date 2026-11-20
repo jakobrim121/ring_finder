@@ -1,0 +1,23 @@
+The optional ordered SIMD math adapts glibc 2.37 atan2 and exp.
+Original copyright: Free Software Foundation, IBM, and Arm Limited.
+License: LGPL-2.1-or-later. Full license in COPYING.LIBM.
+https://github.com/bminor/glibc/blob/glibc-2.37/sysdeps/ieee754/dbl-64/e_atan2.c
+https://github.com/bminor/glibc/blob/glibc-2.37/sysdeps/ieee754/dbl-64/uatan.tbl
+https://github.com/bminor/glibc/blob/glibc-2.37/sysdeps/ieee754/dbl-64/e_exp.c
+https://github.com/bminor/glibc/blob/glibc-2.37/sysdeps/ieee754/dbl-64/e_exp_data.c
+Changes: unchanged coefficient bits moved to a shared data file; independent
+ordinary lanes use SIMD with explicit original FMA operation order. Other
+lanes retain system libm. The loader requires the tested library SHA256.
+The relevant source is included in wctering/receiver/math_tables.c,
+math_tables.h and ordered_math.h. No event-derived coefficients are used.
+
+The accepted reference path also adapts glibc 2.37's IBM Accurate Mathematical
+Library acos, sine and tangent branches. Copyright (C) 2001-2023 Free Software
+Foundation, Inc.; LGPL-2.1-or-later, as retained in each source header.
+Upstream source/table names: e_asin.c, asincos.tbl, s_sin.c, usncs.h,
+sincostab.c, s_tan.c, utan.h and utan.tbl (sysdeps/ieee754/dbl-64).
+The readable package separates their unchanged coefficient bits into
+acos_coefficients.h, sin_coefficients.h and tan_coefficients.h; the adapted
+operations remain in acos_inline.h, ordered_sin.h and ordered_tan.h.
+Their runtime loader checks the actual libm SHA-256 before enabling the
+qualified vector path. Scalar fallbacks remain for unqualified environments.

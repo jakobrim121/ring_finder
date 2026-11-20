@@ -1,0 +1,22 @@
+{
+  "schema": "licketyfit_flat_geometry_v1",
+  "detector": "WCTE",
+  "sha256": "839ac332dc7730ec7567ac3756502e1e14b4eda32a4e30b701b04c970041ecee",
+  "source_name": "Geometry/examples/wcte_bldg157.geo",
+  "source_sha256": "b1399d1643da4d9482214110318af5807fac276ea395a370d8dca47907871b64",
+  "placement": "design",
+  "inactive_slots": [
+    27,
+    32,
+    45,
+    74,
+    77,
+    79,
+    85,
+    91,
+    99
+  ],
+  "pmt_count": 1843,
+  "geometry_id_sha256": null,
+  "array_order": "module slot, then PMT within module; zero based"
+}

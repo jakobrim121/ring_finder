@@ -1,0 +1,32 @@
+[build-system]
+requires = ["setuptools>=77"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "wcte-ring-finder"
+version = "0.1.0"
+description = "Cherenkov ring reconstruction from WCTE PMT charge and timing"
+readme = "README.md"
+requires-python = ">=3.11,<3.13"
+license-files = ["licenses/*"]
+dependencies = [
+    "numpy==1.26.4",
+    "scipy==1.17.1",
+    "numba==0.65.1",
+    "llvmlite==0.47.0",
+    "threadpoolctl==3.6.0",
+]
+
+[project.optional-dependencies]
+notebook = [
+    "awkward>=2.6,<3",
+    "jupyterlab>=4,<5",
+    "matplotlib>=3.8,<4",
+    "uproot>=5.3,<6",
+]
+
+[tool.setuptools.packages.find]
+include = ["wcte*"]
+
+[tool.setuptools.package-data]
+"*" = ["*.csv", "*.npz", "*.txt", "*.json", "*.c", "*.h"]

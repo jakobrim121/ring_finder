@@ -1,0 +1,17 @@
+{
+  "records": [
+    {
+      "source": "/cvmfs/geant4.cern.ch/share/data/G4EMLOW7.13/estar/estar_basic/mater/WATER",
+      "path": "estar_water_basic.txt",
+      "sha256": "75d36f7990b3e36186b207f9e4e79ce358201c2bf9d857f1f5ecdd77fbb864fe",
+      "bytes": 6479
+    },
+    {
+      "source": "/cvmfs/geant4.cern.ch/share/data/G4EMLOW7.13/estar/estar_long/mater/WATER",
+      "path": "estar_water_long.txt",
+      "sha256": "b5b18c39f62aa64db0043ec919b24521c46307b5fed2bfbe9149fd9d3e91425b",
+      "bytes": 5917
+    }
+  ],
+  "data_io_only_on_eos": true
+}

@@ -1,0 +1,8 @@
+{
+  "maximum_refinement_error": 4.5223779504633506e-07,
+  "normalization_error": 2.2202179092989383e-06,
+  "minimum_density": 0.00012145023774599048,
+  "maximum_transfer_mev": 30.253824599103538,
+  "approximation": "co-located soft secondaries; heavy projectile; rotational diffusion",
+  "passed": true
+}
