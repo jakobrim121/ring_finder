@@ -3,6 +3,7 @@
 import numpy as np
 
 from short_kink import matched
+from wcte.counting import track_counting
 
 
 def group_sections(paths, support):
@@ -10,7 +11,7 @@ def group_sections(paths, support):
 
     active = {j for j, signal in enumerate(support) if signal >= 10.0}
     cores = []
-    threshold = np.cos(np.radians(15.0))
+    threshold = track_counting.get().merge_cosine
     for j in sorted(active):
         if j - 1 in active and trajectory(paths[j - 1], np.ones(1))[1][0] @ paths[j][3:6] >= threshold:
             cores[-1] = (*cores[-1], j)
@@ -39,7 +40,8 @@ def compare(competition, model, state):
     )
     if merged is None:
         return None
-    retained = [i for i, p in enumerate(merged["neighborhoods"]) if p["gate_pmt_support"] >= 30.0]
+    minimum = track_counting.get().min_track_pmts
+    retained = [i for i, p in enumerate(merged["neighborhoods"]) if p["gate_pmt_support"] >= minimum]
     if not retained:
         return None
     result = dict(merged, label=label, count=len(retained))

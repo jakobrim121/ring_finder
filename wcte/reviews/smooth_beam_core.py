@@ -7,6 +7,7 @@ All light, readout, numerical checks and count support use the original model.
 
 import time
 import numpy as np
+from wcte.counting import track_counting
 
 
 class SmoothChart:
@@ -157,7 +158,11 @@ def counted(model, state):
     # emitting core. Assess support after adding their source intensities.
     core = state["posterior"][1:].sum(0)
     support = float((1.0 - model.obs.no_source(state["means_hit"], core)).sum())
-    fractions = np.column_stack([1.0 - core, core]) if support >= 30.0 else np.ones((len(core), 1))
+    fractions = (
+        np.column_stack([1.0 - core, core])
+        if support >= track_counting.get().min_track_pmts
+        else np.ones((len(core), 1))
+    )
     return fractions, support
 
 

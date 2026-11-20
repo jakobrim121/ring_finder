@@ -3,6 +3,7 @@
 import numpy as np
 
 from light_competition import Template
+from wcte.counting import track_counting
 
 
 def factory(event, background, particles, order):
@@ -99,9 +100,10 @@ def refine(
 
             sections = [p for p, _ in paths(x[:-2])]
             groups = [(0,)]
+            threshold = track_counting.get().merge_cosine
             for j, (a, b) in enumerate(zip(sections, sections[1:]), 1):
                 tangent = trajectory(a, np.ones(1))[1][0]
-                if tangent @ b[3:6] >= np.cos(np.radians(15.0)):
+                if tangent @ b[3:6] >= threshold:
                     groups[-1] += (j,)
                 else:
                     groups.append((j,))
