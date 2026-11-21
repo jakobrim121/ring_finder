@@ -6,6 +6,7 @@ import numpy as np
 
 from light_competition import Competition, optical_template, physical_template, short_lepton_templates
 from matched_turn_split import compare, turn_degrees
+from wcte.counting import track_counting
 
 
 def controls(competition, prepared, bank, detail):
@@ -63,9 +64,11 @@ def review(captured, prediction, detail, particle):
     ):
         return prediction, dict(applied=False, eligible=False)
     event, old, bank = (captured[k] for k in ("event", "detail", "bank"))
+    rules = track_counting.get()
+    minimum = rules.min_track_pmts
     opening = turn_degrees(np.asarray(selected["parameters"], float))
     if (
-        opening >= 15.0
+        opening > rules.track_merge_angle_deg
         or old.get("chord") is not None
         or "1" not in bank
         or not (event.timing_selection.get("prompt_window_ns"))
@@ -83,9 +86,9 @@ def review(captured, prediction, detail, particle):
         if r["count"] == 2
         and min(r["retained_each_incumbent_section"]) >= 0.9
         and r["retained_both_incumbent_sections"] >= 0.9
-        and min(v["gate_leave_one_module"] for v in r["neighborhoods"]) >= 30.0
+        and min(v["gate_leave_one_module"] for v in r["neighborhoods"]) >= minimum
     ]
-    merged = [r for r in tried if r["count"] == 1 and r["neighborhoods"][0]["gate_pmt_support"] >= 30.0]
+    merged = [r for r in tried if r["count"] == 1 and r["neighborhoods"][0]["gate_pmt_support"] >= minimum]
     if not eligible or not merged:
         return prediction, result
     size = np.log(len(model.active))
@@ -98,7 +101,7 @@ def review(captured, prediction, detail, particle):
         *(
             r
             for r in controls(choice, old, bank, detail)
-            if r["count"] == 1 and r["neighborhoods"][0]["gate_pmt_support"] >= 30.0
+            if r["count"] == 1 and r["neighborhoods"][0]["gate_pmt_support"] >= minimum
         ),
     ]
     before = max(same, key=score)
@@ -112,7 +115,7 @@ def review(captured, prediction, detail, particle):
     ratio = np.divide(split[:, 0], split.sum(1), out=np.ones(len(split)), where=split.sum(1) > 1.0e-15)
     first = assigned * np.clip(ratio, 0.0, 1.0)
     fractions = np.column_stack([prediction["fractions"][:, 0], first, assigned - first])
-    if min(fractions[:, 1:].sum(0)) < 30.0:
+    if min(fractions[:, 1:].sum(0)) < minimum:
         return prediction, result
     result.update(
         applied=True,

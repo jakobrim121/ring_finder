@@ -9,7 +9,7 @@ from wcte.counting import track_counting
 def group_sections(paths, support):
     from source import trajectory
 
-    active = {j for j, signal in enumerate(support) if signal >= 10.0}
+    active = {j for j, signal in enumerate(support) if signal >= min(10.0, track_counting.get().min_track_pmts)}
     cores = []
     threshold = track_counting.get().merge_cosine
     for j in sorted(active):

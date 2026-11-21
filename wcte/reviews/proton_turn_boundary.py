@@ -10,16 +10,18 @@ from occupancy_pulse import create
 from proton_vertex_residual import rank
 from shared_scoring import match_charge_shares
 from short_kink import matched
+from wcte.counting import track_counting
 
 
 def qualified_merge(record):
+    rules = track_counting.get()
     return (
         tuple(record.get("particles", ())) == ("proton", "proton")
         and bool(record.get("order"))
         and bool(np.asarray(record.get("parameters", ())).size)
         and record.get("lineage_sections") == [(0, 1)]
-        and 9.0 <= record.get("turn_deg", 0.0) < 15.0
-        and min(record.get("individual_prompt_support", (0.0,))) >= 40.0
+        and rules.turn_offset(-6.0) <= record.get("turn_deg", 0.0) <= rules.track_merge_angle_deg
+        and min(record.get("individual_prompt_support", (0.0,))) >= rules.scaled_support(40.0)
     )
 
 
@@ -34,8 +36,9 @@ def compare(competition, incumbent, merge):
     report = dict(eligible=qualified_merge(merge), applied=False)
     if not report["eligible"]:
         return None, report
-    floor = 17.0
-    seed = seed_turn(np.asarray(merge["parameters"]), floor + 1.0)
+    rules = track_counting.get()
+    floor = rules.turn_offset(2.0)
+    seed = seed_turn(np.asarray(merge["parameters"]), rules.turn_offset(3.0))
     pair = qualify(competition, merge["particles"], seed, separate=True, aperture=True, turn_floor=floor)
     if pair is None:
         return None, report
@@ -70,8 +73,8 @@ def compare(competition, incumbent, merge):
     report.update(occupancy_margin=advantage, occupancy_without_best_module=robust)
     if (
         not valid
-        or min(observed) < 40.0
-        or min(distributed) < 30.0
+        or min(observed) < rules.min_track_pmts
+        or min(distributed) < rules.min_track_pmts
         or min(retained) < 0.55
         or max(retained) < 0.85
         or min(delta) < -6.0

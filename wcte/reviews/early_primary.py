@@ -6,6 +6,7 @@ import numpy as np
 
 from light_competition import Competition, optical_template
 from short_kink import matched
+from wcte.counting import track_counting
 
 
 def probability(counter):
@@ -68,7 +69,7 @@ def review(prediction, old, bank, event, particle, *, counter_minimum=0.94):
     if trial is None:
         return None
     benefit = evidence(trial) - evidence(control)
-    if benefit <= 6.6349 or min(k["gate_pmt_support"] for k in trial["neighborhoods"]) < 50.0:
+    if benefit <= 6.6349 or min(k["gate_pmt_support"] for k in trial["neighborhoods"]) < track_counting.get().scaled_support(50.0):
         return None
     shares = trial["fractions"]["prompt"]
     q = np.minimum(prediction["charges"], 2.0)

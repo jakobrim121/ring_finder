@@ -382,7 +382,7 @@ class Competition:
                     from visible_probability import visibility
 
                     probability, mean = visibility(self.event.pmt_ids, gate_presence[:, j])
-                    region.update(probability_of_30=probability, distinct_support_mean=mean)
+                    region.update(probability_of_minimum_support=probability, distinct_support_mean=mean)
             measured.append(region)
         if joint is None:
             joint, _, _ = selection.score(rates, centers)

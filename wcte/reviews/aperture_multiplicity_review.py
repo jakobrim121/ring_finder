@@ -7,6 +7,7 @@ from light_competition import Competition
 from light_model_bank import measured_bank
 from merged_charge_support import charge_preservation, physical_merger
 from shared_scoring import match_charge_shares
+from wcte.counting import track_counting
 
 
 def histories(competition, particle, optics, *, starts_per_family=2):
@@ -48,11 +49,12 @@ def conservation(prediction, lower):
 
 def separated_faint_section(trial):
     """Keep a plausible separate section that the lower-count model retains."""
-    if trial.get("turn_deg", 0.0) < 20.0:
+    rules = track_counting.get()
+    if trial.get("turn_deg", 0.0) < rules.turn_offset(5.0):
         return False
     counted = {j for group in trial.get("lineage_sections", ()) for j in group}
     for j, support in enumerate(trial.get("individual_prompt_support", ())):
-        if j not in counted and 15.0 <= support <= 45.0:
+        if j not in counted and rules.scaled_support(15.0) <= support <= rules.scaled_support(45.0):
             return True
     return False
 
@@ -88,7 +90,7 @@ def review(captured, prediction, original, particle):
         return 2.0 * (0.65 * result["charge"] + 0.35 * result["joint"]) - penalty * result["dimension"]
 
     def supported(result):
-        return min((n["gate_pmt_support"] for n in result["neighborhoods"]), default=0.0) >= 30.0
+        return min((n["gate_pmt_support"] for n in result["neighborhoods"]), default=0.0) >= track_counting.get().min_track_pmts
 
     endpoints, local, search = histories(choice, particle, optics)
     report.update(search, eligible=True, bank_messages=notes)

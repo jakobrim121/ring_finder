@@ -100,10 +100,10 @@ class SmoothChart:
         dx = np.vstack([dp, dtangent, dbend2, dremaining, dfraction2, jac[11:14]])
 
         # Same smooth-core convention as the existing incoming chart:
-        # neither arc can hide a >15-degree direction change inside 1 cm.
+        # neither arc can hide a countable direction change inside 1 cm.
         turn2 = 0.01**2 * (bend2 @ bend2) / second**2
         dturn2 = 2.0 * 0.01**2 * (bend2 @ dbend2) / second**2 - 2.0 * turn2 * dsecond / second
-        values = np.r_[margins, np.deg2rad(15.0) ** 2 - turn2]
+        values = np.r_[margins, track_counting.get().merge_angle_rad**2 - turn2]
         derivatives = np.vstack([np.pad(constraints, ((0, 0), (0, 2))), -dturn2])
         self.cached = y.copy(), x, dx, values, derivatives
         self.evaluated[x.tobytes()] = y.copy()

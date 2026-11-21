@@ -5,6 +5,7 @@ from dataclasses import replace
 import numpy as np
 
 from light_competition import Template
+from wcte.counting import track_counting
 
 
 def chord_geometry(line):
@@ -261,7 +262,8 @@ def review(
             r
             for r in incumbent
             if all(
-                n["gate_pmt_support"] >= 30.0 and n["gate_leave_one_module"] >= 20.0
+                n["gate_pmt_support"] >= track_counting.get().min_track_pmts
+                and n["gate_leave_one_module"] >= track_counting.get().scaled_support(20.0)
                 for n in r["neighborhoods"]
             )
         ]

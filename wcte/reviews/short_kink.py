@@ -4,6 +4,7 @@ import numpy as np
 
 from finite_chains import factory, refine
 from light_competition import Template
+from wcte.counting import track_counting
 
 
 def starts(competition, particle, record):
@@ -14,6 +15,7 @@ def starts(competition, particle, record):
 
     prototype = factory(competition.event, competition.model.bg, (particle, particle), 4)
     x = np.asarray(record["parameters"])
+    rules = track_counting.get()
     rows = []
     for split_fraction in (0.12, 0.28, 0.46, 0.66, 0.84):
         divided = split(x[:12], split_fraction, particle, particle, 1.0)
@@ -24,7 +26,7 @@ def starts(competition, particle, record):
         side = np.cross(tangent, np.eye(3)[np.argmin(abs(tangent))])
         side /= np.linalg.norm(side)
         ortho = np.cross(tangent, side)
-        for angle in np.radians((15.0, 26.0, 41.0)):
+        for angle in np.radians([rules.turn_offset(offset) for offset in (0.0, 11.0, 26.0)]):
             for phi in np.linspace(0.0, 2.0 * np.pi, 8, endpoint=False):
                 transverse = np.cos(phi) * side + np.sin(phi) * ortho
                 turned = outgoing.copy()

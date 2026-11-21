@@ -6,6 +6,7 @@ from itertools import islice
 import numpy as np
 
 from light_competition import optical_template, short_lepton_templates
+from wcte.counting import track_counting
 
 
 def geometry_with_path(geometry, path, amplitudes):
@@ -110,9 +111,9 @@ def propose(competition, bank, geometry, template, control, *, thorough=False, s
             )
             trials.append(summary)
             novel = (
-                extra["pmt_support"] >= 30.0
-                and extra["lower_statistical"] >= 22.0
-                and extra["leave_one_module"] >= 22.0
+                extra["pmt_support"] >= track_counting.get().min_track_pmts
+                and extra["lower_statistical"] >= track_counting.get().scaled_support(22.0)
+                and extra["leave_one_module"] >= track_counting.get().scaled_support(22.0)
                 and active_evidence >= 12.0
                 and np.min(retention, initial=1.0) >= 0.65
             )

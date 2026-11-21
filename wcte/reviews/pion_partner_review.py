@@ -7,6 +7,7 @@ from finite_chains import factory, refine
 from light_competition import Competition
 from light_model_bank import measured_bank
 from proton_vertex_residual import rank
+from wcte.counting import track_counting
 
 
 def physical_candidates(original):
@@ -128,15 +129,16 @@ def review(captured, prediction, original, particle):
         # a larger change in foreground when both new footprints are bright
         # and the timing gain remains strong outside the favored module.
         retained_light = retained >= 0.90 or (
-            retained >= 0.80 and min(spread) >= 80.0 and min(gain) >= 80.0 and min(held) >= 60.0
+            retained >= 0.80 and min(spread) >= track_counting.get().scaled_support(80.0)
+            and min(gain) >= 80.0 and min(held) >= 60.0
         )
         if (
             retained_light
             and entry >= 0.60
             and min(gain) >= 30.0
             and min(held) >= 20.0
-            and min(support) >= 30.0
-            and min(spread) >= 20.0
+            and min(support) >= track_counting.get().min_track_pmts
+            and min(spread) >= track_counting.get().scaled_support(20.0)
         ):
             return dict(prediction, fractions=shares), dict(report, applied=True, selected=observed)
     return prediction, report

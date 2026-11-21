@@ -8,6 +8,7 @@ from primary_residual_second import compare as add_to_primary
 from residual_cores import propose
 from retained_history import compare_on_history, restore_energy_fit, restore_original_physical
 from shared_scoring import match_charge_shares
+from wcte.counting import track_counting
 
 
 def review(captured, prediction, original, particle, energy_history):
@@ -63,7 +64,7 @@ def review(captured, prediction, original, particle, energy_history):
         (
             t
             for t in alternatives
-            if t["count"] == count + 1 and min((r["gate_pmt_support"] for r in t["neighborhoods"])) >= 30.0
+            if t["count"] == count + 1 and min((r["gate_pmt_support"] for r in t["neighborhoods"])) >= track_counting.get().min_track_pmts
         ),
         key=score,
         default=None,
@@ -111,11 +112,11 @@ def review(captured, prediction, original, particle, energy_history):
         timing_without_top_module=float(min(robust_timed)),
         mixed_without_top_module=module_margin,
     )
-    visible = independent_support >= 30.0 or (
+    visible = independent_support >= track_counting.get().min_track_pmts or (
         count == 1
         and gain >= 75.0
-        and (independent_support >= 26.0)
-        and (best["neighborhoods"][-1]["gate_pmt_support"] >= 35.0)
+        and (independent_support >= track_counting.get().scaled_support(26.0))
+        and (best["neighborhoods"][-1]["gate_pmt_support"] >= track_counting.get().scaled_support(35.0))
     )
     required_module_margin = 20.0 if count == 2 and True else 0.0
     if count == 1 and reference["label"] == "primary_residual_known_beam_finite_primary":

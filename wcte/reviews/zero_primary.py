@@ -6,6 +6,7 @@ import numpy as np
 
 from beam_continuation import Reference, score_candidate
 from beam_prefix import fit_prefix
+from wcte.counting import track_counting
 
 
 def experiment(captured, prediction, detail, particle):
@@ -18,7 +19,7 @@ def experiment(captured, prediction, detail, particle):
     if (
         particle not in ("pion", "proton")
         or prediction["fractions"].shape[1] != 1
-        or len(np.unique(event.pmt_ids)) < 30
+        or len(np.unique(event.pmt_ids)) < track_counting.get().min_unique_pmts
     ):
         return dict(reason="Outside zero-ring hadron scope"), {}
     start = time.process_time()
@@ -45,7 +46,7 @@ def experiment(captured, prediction, detail, particle):
         and row["eligible"]
         and row["gain"] > MARGIN
         and pulse
-        and pulse[0]["prompt_pmts"] >= 18
+        and pulse[0]["prompt_pmts"] >= track_counting.get().scaled_support(18)
         and pulse[0]["prompt_pmts"] >= 0.35 * pulse[0]["hard_pmts"]
     )
     return dict(

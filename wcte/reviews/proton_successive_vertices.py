@@ -7,6 +7,7 @@ from calibrated_count_review import supported_shares
 from finite_chains import factory, refine
 from proton_vertex_residual import rank
 from shared_scoring import match_charge_shares
+from wcte.counting import track_counting
 
 
 def nominated(lower):
@@ -98,6 +99,7 @@ def fixed_direction(start, separated):
     from chain_sources import paths
     from source import trajectory
 
+    rules = track_counting.get()
     x = start.copy()
     for j in range(2):
         a, b = [p for p, _ in paths(x[:-2])][j : j + 2]
@@ -106,7 +108,11 @@ def fixed_direction(start, separated):
         if np.linalg.norm(transverse) < 1.0e-8:
             transverse = np.cross(incoming, np.eye(3)[np.argmin(abs(incoming))])
         separation = np.degrees(np.arccos(np.clip(incoming @ b[3:6], -1.0, 1.0)))
-        desired = max(separation, 16.5) if j == separated else min(separation, 13.4)
+        desired = (
+            max(separation, rules.turn_offset(1.5))
+            if j == separated
+            else min(separation, rules.turn_offset(-1.6))
+        )
         angle = np.radians(desired)
         offset = 12 + 9 * j
         x[offset : offset + 3] = np.cos(angle) * incoming + np.sin(angle) * transverse / np.linalg.norm(
@@ -126,8 +132,11 @@ def profile(choice, start, separated):
     from lineage_support import compare as measured_lineage
     from track_coordinates import fit
 
+    rules = track_counting.get()
+    if separated is not None and rules.track_merge_angle_deg == 180.0:
+        return None
     signs = np.asarray([-1.0 if i == separated else 1.0 for i in range(2)])
-    limits = np.cos(np.radians(np.where(signs > 0.0, 14.98, 15.02)))
+    limits = np.cos(np.radians(np.where(signs > 0.0, rules.turn_offset(-0.02), rules.turn_offset(0.02))))
 
     def chart(order):
         model = factory(choice.event, choice.model.bg, ("proton",) * 3, order)
@@ -238,7 +247,7 @@ def compare(competition, prediction, lower, optics, *, prefer_on_tie=False):
             and min(diffuse) >= 45.0
             and min(retained) >= 0.35
             and max(retained) >= 0.90
-            and min(trial["individual_prompt_support"]) >= 45.0
+            and min(trial["individual_prompt_support"]) >= track_counting.get().scaled_support(45.0)
         )
         if (
             (strong or comparable)

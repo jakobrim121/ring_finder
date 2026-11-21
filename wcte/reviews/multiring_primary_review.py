@@ -8,6 +8,7 @@ from aperture_primary_only import entry_evidence
 from light_competition import Competition, optical_template, physical_template, short_lepton_templates
 from primary_competition import candidates
 from shared_scoring import match_charge_shares
+from wcte.counting import track_counting
 
 
 def measured_models(competition, prepared, bank, detail, count=2):
@@ -117,7 +118,7 @@ def review(captured, prediction, detail, particle):
             continue
         support = [core["gate_pmt_support"] for core in trial["neighborhoods"]]
         independent = trial["neighborhoods"][-1]["gate_leave_one_module"]
-        if min(support) < 30.0 or independent < 30.0:
+        if min(support) < track_counting.get().min_track_pmts or independent < track_counting.get().min_track_pmts:
             continue
         new = trial["fractions"]["prompt"]
         beam = weights * new[:, -1]

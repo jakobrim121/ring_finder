@@ -5,6 +5,7 @@ import numpy as np
 from light_competition import Competition
 from light_model_bank import measured_bank
 from proton_vertex_residual import rank
+from wcte.counting import track_counting
 
 
 def measured_pair_records(prediction, original, particle):
@@ -103,7 +104,7 @@ def review(captured, prediction, original, particle):
         for r in models
         if r["count"] == 1
         or r["count"] == 3
-        and min(n["gate_leave_one_module"] for n in r["neighborhoods"]) >= 30.0
+        and min(n["gate_leave_one_module"] for n in r["neighborhoods"]) >= track_counting.get().min_track_pmts
     ]
     if not controls:
         return prediction, report
@@ -141,8 +142,8 @@ def review(captured, prediction, original, particle):
         if (
             min(gain) < 75.0
             or held < 45.0
-            or min(support) < 50.0
-            or min(spread) < 40.0
+            or min(support) < track_counting.get().min_track_pmts
+            or min(spread) < track_counting.get().scaled_support(40.0)
             or retained < 0.90
             or min(portions) < 0.18
         ):

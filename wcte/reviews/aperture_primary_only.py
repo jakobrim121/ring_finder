@@ -6,6 +6,7 @@ import numpy as np
 
 from finite_chains import factory
 from light_competition import Template
+from wcte.counting import track_counting
 
 
 def holds_entry(original, prepared):
@@ -95,9 +96,9 @@ def compare(competition, trials, incumbent, original, prepared, *, independent_s
         return []
     options = []
     for t in trials:
-        if t["count"] != 2 or t["neighborhoods"][0]["gate_pmt_support"] < 30.0:
+        if t["count"] != 2 or t["neighborhoods"][0]["gate_pmt_support"] < track_counting.get().min_track_pmts:
             continue
-        if independent_support and t["neighborhoods"][0]["gate_leave_one_module"] < 30.0:
+        if independent_support and t["neighborhoods"][0]["gate_leave_one_module"] < track_counting.get().min_track_pmts:
             continue
         incoming = t["fractions"]["prompt"][:, 1]
         overlap = 2.0 * (q @ np.minimum(prior, incoming)) / max(q @ (prior + incoming), 1e-15)

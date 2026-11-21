@@ -1,6 +1,7 @@
 """Test abrupt energy changes along finite, connected hadron trajectories."""
 
 import numpy as np
+from wcte.counting import track_counting
 
 from finite_chains import factory, measured_axes, refine
 from short_kink import matched
@@ -58,7 +59,7 @@ def proposals(competition, single, particle, optics):
                     full = repair_energy(model, full)
                     if full is None or not feasible(model, full) or model.hardware_margin(full) <= 1e-5:
                         continue
-                    group = angle >= 15.0, ran < 1.15 * water["margin_mm"] * 0.001
+                    group = angle > track_counting.get().track_merge_angle_deg, ran < 1.15 * water["margin_mm"] * 0.001
                     score = seed_log_likelihood(model, full)
                     if group not in chosen or score > chosen[group][0]:
                         chosen[group] = (score, model.particles, full, fraction)

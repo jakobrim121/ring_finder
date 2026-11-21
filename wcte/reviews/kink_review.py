@@ -4,6 +4,7 @@ import numpy as np
 
 from light_competition import Competition, optical_template, physical_template
 from short_kink import experiments
+from wcte.counting import track_counting
 
 
 def review(
@@ -41,16 +42,18 @@ def review(
             competition, particle, visibility_probability=required_visibility is not None
         )
 
+    rules = track_counting.get()
+
     def visible(p):
         if required_visibility is None:
-            return p["gate_pmt_support"] >= 30.0
-        return p["probability_of_30"] >= required_visibility
+            return p["gate_pmt_support"] >= rules.min_track_pmts
+        return p["probability_of_minimum_support"] >= required_visibility
 
     preferred = []
     prior = prediction["fractions"][:, 1]
     weights = np.minimum(prediction["charges"], 2.0)
     for trial in examined:
-        if trial["count"] != 2 or trial.get("turn_deg", 0.0) < 15.0:
+        if trial["count"] != 2 or trial.get("turn_deg", 0.0) <= rules.track_merge_angle_deg:
             continue
         if not all(visible(p) for p in trial["neighborhoods"]):
             continue

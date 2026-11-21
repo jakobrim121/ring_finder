@@ -6,6 +6,7 @@ from calibrated_count_review import supported_shares
 from light_competition import Competition
 from light_model_bank import measured_bank
 from shared_scoring import match_charge_shares
+from wcte.counting import track_counting
 
 
 def review(captured, original_three, reduced, original, particle, diagnostics=None):
@@ -40,7 +41,9 @@ def review(captured, original_three, reduced, original, particle, diagnostics=No
         for r in trials
         if r["count"] == 3
         and all(
-            n["gate_pmt_support"] >= 40.0 and n["gate_leave_one_module"] >= 30.0 for n in r["neighborhoods"]
+            n["gate_pmt_support"] >= track_counting.get().min_track_pmts
+            and n["gate_leave_one_module"] >= track_counting.get().min_track_pmts
+            for n in r["neighborhoods"]
         )
     ]
     report["tested_alternatives"] = len(contenders)

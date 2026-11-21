@@ -3,6 +3,7 @@
 from itertools import combinations, permutations
 
 import numpy as np
+from wcte.counting import track_counting
 
 
 def charge_preservation(prediction, lower):
@@ -39,7 +40,7 @@ def physical_merger(trial, count):
         return (
             sections == ((0, 1),)
             and len(set(trial.get("particles", ()))) == 1
-            and trial.get("turn_deg", np.inf) < 15.0
+            and trial.get("turn_deg", np.inf) <= track_counting.get().track_merge_angle_deg
         )
     return len(trial.get("lineage_sections", ())) == 2
 

@@ -8,6 +8,7 @@ from light_competition import Competition
 from light_model_bank import measured_bank
 from primary_competition import candidates
 from shared_scoring import match_charge_shares
+from wcte.counting import track_counting
 
 
 def review(captured, prediction, original, particle, *, chord_retry=False):
@@ -76,7 +77,10 @@ def review(captured, prediction, original, particle, *, chord_retry=False):
     old_mass = np.maximum(q @ old[:, 1:], 1e-12)
     total_old = old[:, 1:].sum(1)
     for trial in sorted(fitted, key=lambda r: evidence(r)[1], reverse=True):
-        if trial["count"] != count + 1 or min(p["gate_pmt_support"] for p in trial["neighborhoods"]) < 30.0:
+        if (
+            trial["count"] != count + 1
+            or min(p["gate_pmt_support"] for p in trial["neighborhoods"]) < track_counting.get().min_track_pmts
+        ):
             continue
         gain_q, gain, gain_t = evidence(trial) - benchmark
         new = trial["fractions"]["prompt"]

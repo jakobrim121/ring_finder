@@ -6,6 +6,7 @@ import numpy as np
 
 from aperture_primary_only import compare as primary_options, entry_evidence, holds_entry
 from light_competition import Competition, optical_template, physical_template
+from wcte.counting import track_counting
 
 
 def measured_bank(competition, prepared, bank, detail):
@@ -66,7 +67,7 @@ def review(captured, prediction, detail, particle):
     prior = prediction["fractions"][:, 1]
     overlap, residual_support = entry_evidence(event.pmt_ids, event.charges_pe, prior, particle)
     result = dict(applied=False, entry_overlap=overlap, unclaimed_entry_support=residual_support)
-    if overlap >= 0.70 or residual_support < 22.0:
+    if overlap >= 0.70 or residual_support < track_counting.get().scaled_support(22.0):
         return prediction, dict(
             result, reason="The entry light agrees with the incumbent or lacks separate support"
         )
@@ -111,7 +112,9 @@ def review(captured, prediction, detail, particle):
     charge = np.minimum(prediction["charges"], 2.0)
     primary = selected[:, 1]
     for trial in sorted(detached, key=information, reverse=True):
-        if trial["count"] != 2 or any(x["gate_pmt_support"] < 30.0 for x in trial["neighborhoods"]):
+        if trial["count"] != 2 or any(
+            x["gate_pmt_support"] < track_counting.get().min_track_pmts for x in trial["neighborhoods"]
+        ):
             continue
         shared = trial["fractions"]["prompt"]
         retention = float((charge @ np.minimum(primary, shared[:, 1])) / max(charge @ primary, 1.0e-12))

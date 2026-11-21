@@ -4,6 +4,7 @@ import numpy as np
 
 from light_competition import Competition
 from light_model_bank import measured_bank
+from wcte.counting import track_counting
 
 
 def ambiguous(prediction, detail):
@@ -102,7 +103,7 @@ def review(captured, prediction, original):
         support=[r["gate_pmt_support"] for r in candidate["neighborhoods"]],
     )
     support = min(r["gate_leave_one_module"] for r in candidate["neighborhoods"])
-    if margin < 6.6349 or support < 30.0:
+    if margin < 6.6349 or support < track_counting.get().min_track_pmts:
         return prediction, report
     if old_count == 1 and foreground < 0.85:
         return prediction, report
