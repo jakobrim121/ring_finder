@@ -10,6 +10,7 @@ from aperture_primary_only import measured_entry_overlap
 from counter_light_features import light_features
 from light_competition import Competition
 from light_model_bank import measured_bank
+from wcte.counting import optical_sources_resolved, track_counting
 
 
 @lru_cache(maxsize=2)
@@ -93,6 +94,7 @@ def review(captured, prediction, recent, particle, package, *, allow_reduction=T
     prior = min(exact_count, 3)
     costs = evidence_cost(probabilities, prior, model["review_margin"], model["missed_cost"])
     report.update(probabilities=probabilities.tolist(), policy_cost=costs.tolist())
+    minimum = track_counting.get().min_track_pmts
     for count in np.argsort(costs):
         if count == prior:
             break
@@ -105,7 +107,10 @@ def review(captured, prediction, recent, particle, package, *, allow_reduction=T
             trial = trials[index]
             share = trial["fractions"][mode]
             support = [n["pmt_support"] for n in trial["neighborhoods"]]
-            if min(support, default=0.0) < 30.0 or not supported_shares(prediction, share, particle):
+            if min(support, default=0.0) < minimum or not supported_shares(prediction, share, particle):
+                continue
+            geometry = trial.get("geometry")
+            if geometry and not optical_sources_resolved(geometry["axes"], geometry["vertices"]):
                 continue
             if count == 2 and exact_count >= 3:
                 from merged_charge_support import lost_ring_signal, preserves_distributed_light

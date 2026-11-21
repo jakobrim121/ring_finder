@@ -45,7 +45,8 @@ class BelowSupport(Bare):
         super().__init__(ids, charges, background, particles, 4, order)
         self.section = section
         # Leave a small margin between the solver target and the counting cut.
-        self.support_limit = max(0.0, track_counting.get().min_track_pmts - 0.1)
+        minimum = track_counting.get().min_track_pmts
+        self.support_limit = minimum - min(0.1, 0.5 * minimum)
         self.countable_cache = None
 
     def primary_light(self, x):

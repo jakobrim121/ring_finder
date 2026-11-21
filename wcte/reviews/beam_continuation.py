@@ -3,6 +3,7 @@
 from dataclasses import dataclass
 
 import numpy as np
+from wcte.counting import track_counting
 
 
 @dataclass
@@ -144,7 +145,7 @@ def score_candidate(event, trial, reference, family):
         or count == 2
         and occupied.all()
         and prompt
-        and all(row["prompt_pmts"] >= 18 and row["prompt_pmts"] >= 0.35 * row["hard_pmts"] for row in prompt)
+        and all(row["prompt_pmts"] >= track_counting.get().scaled_support(18) and row["prompt_pmts"] >= 0.35 * row["hard_pmts"] for row in prompt)
     )
     gain = 2 * (state["log_joint"] - reference.ll) + (reference.dimension - model.dimension) * np.log(
         len(model.active)

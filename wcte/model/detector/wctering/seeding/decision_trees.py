@@ -5,6 +5,7 @@ pre-existing unified_v226 weights are loaded by multiplicity.py."""
 
 import numpy as np
 from numba import njit
+from wcte.counting import track_counting
 
 
 def packed_trees(model):
@@ -105,7 +106,8 @@ def available_classes(payload):
     support = payload.get("zero_ring_support_gate") or {}
     n = int(payload.get("usable_hits", support.get("usable_hits", 0)))
     pmts = int(payload.get("usable_unique_pmts", support.get("usable_unique_pmts", 0)))
-    allowed = np.array([True, pmts >= 30, False, False], dtype=bool)
+    observable = not support.get("zero_ring", False) and pmts >= track_counting.get().min_unique_pmts
+    allowed = np.array([True, observable, False, False], dtype=bool)
     h12 = payload.get("full_event_hypotheses") or {}
     h3 = (payload.get("three_ring_hypothesis_test") or {}).get("full_event_hypotheses") or {}
     for k, h in [(2, h12), (3, h3)]:

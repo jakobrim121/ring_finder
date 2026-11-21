@@ -79,14 +79,16 @@ def resolve(
     previous,
     trial,
     *,
-    minimum=30.0,
     separated_axis=False,
     novel_for_all=False,
     measured_gate=False,
 ):
     """Match the extra light against the winning fit and test its PE support."""
     from residual_joint_optics import prompt
+    from wcte.counting import track_counting
 
+    rules = track_counting.get()
+    minimum = rules.min_track_pmts
     gate = event.timing_selection["prompt_window_ns"]
     if gate is None:
         return None
@@ -102,7 +104,7 @@ def resolve(
     if min(retained) < 0.55 or np.exp(path[8]) > np.deg2rad(4.0):
         return None
     if separated_axis:
-        # A nearby pair must resolve the 15-degree lineage cut beyond the
+        # A nearby pair must resolve the configured lineage cut beyond the
         # combined measured angular widths. Use displacement transverse
         # to the path so a genuine detached source can share its axis.
         for prior in trial["paths"][matching]:
@@ -110,7 +112,7 @@ def resolve(
             across = displacement - (displacement @ prior[3:6]) * prior[3:6]
             angle = np.arccos(np.clip(path[3:6] @ prior[3:6], -1.0, 1.0))
             width = np.hypot(np.exp(path[8]), np.exp(prior[8]))
-            if np.linalg.norm(across) < 0.17 and angle < np.deg2rad(15.0) + 2.0 * width:
+            if np.linalg.norm(across) < 0.17 and angle <= rules.merge_angle_rad + 2.0 * width:
                 return None
     flight = np.column_stack([wavefront(event.pmt_positions_mm, p)[0] for p in trial["paths"]])
     _, clocks = prompt(event, flight, trial["fractions"])

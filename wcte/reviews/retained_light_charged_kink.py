@@ -7,6 +7,7 @@ from beam_prefix import fit_prefix
 from finite_chains import factory, refine
 from light_competition import Competition, Template
 from short_kink import starts
+from wcte.counting import track_counting
 
 
 def aperture_distance(point, axis, aperture):
@@ -140,7 +141,7 @@ def review(captured, prediction, original, particle):
     tested = []
     report["options"] = tested
     for trial in sorted(candidates, key=lambda x: rank(x, logn)[1], reverse=True):
-        if trial["count"] != 3 or trial.get("turn_degrees", 0.0) < 17.0:
+        if trial["count"] != 3 or trial.get("turn_degrees", 0.0) <= track_counting.get().track_merge_angle_deg:
             continue
         support = [n["gate_leave_one_module"] for n in trial["neighborhoods"]]
         shares = trial["fractions"]["prompt"]
@@ -166,7 +167,7 @@ def review(captured, prediction, original, particle):
         tested.append(row)
         if (
             min(gains) >= 60.0
-            and min(support) >= 38.0
+            and min(support) >= track_counting.get().min_track_pmts
             and min(retained) >= 0.92
             and min(withheld) >= 35.0
             and supported_shares(prediction, shares, particle)

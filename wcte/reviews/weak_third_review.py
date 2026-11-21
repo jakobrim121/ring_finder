@@ -9,6 +9,7 @@ from light_model_bank import measured_bank
 from proton_vertex_residual import rank
 from residual_cores import propose
 from shared_scoring import match_charge_shares
+from wcte.counting import optical_sources_resolved, track_counting
 
 
 def eligible(prediction, original, particle):
@@ -57,8 +58,12 @@ def review(captured, prediction, original, particle):
     weak_light = q * old[:, weak + 1]
     module = prediction["pmt_ids"] // 100
     candidates = []
+    minimum = track_counting.get().scaled_support(35.0)
     for trial in banked:
-        if trial["count"] != 2 or min(r["gate_leave_one_module"] for r in trial["neighborhoods"]) < 35.0:
+        if trial["count"] != 2 or min(r["gate_leave_one_module"] for r in trial["neighborhoods"]) < minimum:
+            continue
+        geometry = trial.get("geometry")
+        if geometry and not optical_sources_resolved(geometry["axes"], geometry["vertices"]):
             continue
         new = trial["fractions"]["prompt"]
         left, right, _ = match_charge_shares(old, new[:, 1:].T, q)
@@ -86,7 +91,7 @@ def review(captured, prediction, original, particle):
     q3 = [
         t
         for t in banked
-        if t["count"] >= 3 and min(n["gate_pmt_support"] for n in t["neighborhoods"]) >= 30.0
+        if t["count"] >= 3 and min(n["gate_pmt_support"] for n in t["neighborhoods"]) >= track_counting.get().min_track_pmts
     ]
     if not q3:
         return prediction, result
@@ -97,7 +102,7 @@ def review(captured, prediction, original, particle):
         q3.extend(
             t
             for t in extra
-            if t["count"] >= 3 and min(n["gate_pmt_support"] for n in t["neighborhoods"]) >= 30.0
+            if t["count"] >= 3 and min(n["gate_pmt_support"] for n in t["neighborhoods"]) >= track_counting.get().min_track_pmts
         )
     before = np.max([rank(t, logn) for t in q3], axis=0)
     gains = rank(trial, logn) - before

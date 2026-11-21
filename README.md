@@ -78,22 +78,22 @@ prediction, optical, reviews = fit_hits(
 )
 ```
 
-- `min_track_pmts` defaults to 30. The physical track counter sums the
-  estimated probabilities that each observed PMT received at least one
-  photoelectron from the section. This effective PMT count can be
-  fractional. A section below the threshold is ineligible for its own
-  ring column. Charge omitted by the counter goes into the background
-  remainder in that candidate.
+- `min_track_pmts` defaults to 30. Effective support sums the estimated
+  probabilities that the observed PMTs received a photoelectron from a
+  component. This count can be fractional. The optical, physical and timing
+  stages and the final count reviews use the same configured floor. Some
+  reviews compare a statistical lower bound with that floor or require
+  support across multiple modules. The two-cone seed fit requires 10 assigned
+  PMTs per cone at any setting.
 - `track_merge_angle_deg` defaults to 15°. Two adjacent, supported sections
   of a connected trajectory share a ring column when the estimated turn is
-  at or below this angle.
+  at or below this angle. Reviews apply the same boundary to fitted turns and
+  to nearby optical cones. Spatially detached sources can qualify from their
+  separate origins.
 
 The support threshold must be positive and the merge angle can range from
-0° to 180°. These options apply during charged-track counting. The final
-hypothesis still depends on the optical, timing, and calibrated review
-evidence. Changing a threshold can change which hypothesis wins, so the
-final count follows the selected hypothesis. Independently fitted light
-sources may have no estimated track-to-track turn.
+0° to 180°. These settings define ring eligibility. The final hypothesis
+still depends on the optical, timing and calibrated review evidence.
 
 ## From the command line
 

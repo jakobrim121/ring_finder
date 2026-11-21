@@ -11,6 +11,7 @@ from wctering.likelihood.geometry import active_geometry
 from wctering.receiver.angular_panels import finite_integrate
 from wctering.receiver.finite_source import quadrature
 from wctering.seeding.coherent_timing import C, N_GROUP, N_PHASE
+from wcte.counting import track_counting
 
 
 def positions_for_search(event, bank, geometry):
@@ -124,6 +125,7 @@ def fit(
     _, score = obs.score(mean, ix)
     result = []
     existing = np.sum(shapes[1:, ix] * amps[1:, None], axis=0)
+    rules = track_counting.get()
     for _, point, axis, angle, pe, lo, hi, clock, prompt in screen(
         event, bank, geometry, mean, score, shapes, ix, residual_vertices=False
     ):
@@ -152,7 +154,11 @@ def fit(
         n_prompt = int(np.count_nonzero(owns & (prompt > 0.5)))
         support = float(np.sum(1 - obs.no_source(means, last)))
         unique = int(np.count_nonzero(owns & (existing < 0.25 * means)))
-        if support < 30.0 or n_prompt < 18 or unique < 12:
+        if (
+            support < rules.min_track_pmts
+            or n_prompt < rules.scaled_support(18)
+            or unique < rules.scaled_support(12)
+        ):
             continue
         refined = finite_integrate(pos, normals, x, *quadrature(16))[0]
         if refined.sum() <= 0.0:

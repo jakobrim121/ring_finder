@@ -7,6 +7,7 @@ from aperture_primary_only import measured_entry_overlap
 from light_competition import Competition
 from light_model_bank import measured_bank
 from primary_competition import candidates
+from wcte.counting import track_counting
 
 
 def eligibility(prediction, original, particle):
@@ -56,7 +57,8 @@ def review(captured, prediction, original, particle):
         return np.array([charge, 0.65 * charge + 0.35 * timing, timing])
 
     maximum = np.max([evidence(r) for r in controls], axis=0)
-    resolved = [r for r in controls if min(n["gate_leave_one_module"] for n in r["neighborhoods"]) >= 30.0]
+    minimum = track_counting.get().min_track_pmts
+    resolved = [r for r in controls if min(n["gate_leave_one_module"] for n in r["neighborhoods"]) >= minimum]
     supported = np.max([evidence(r) for r in resolved], axis=0) if resolved else maximum
     ids, charge = prediction["pmt_ids"], prediction["charges"]
     q = np.minimum(charge, 2.0)

@@ -16,6 +16,7 @@ from qualified_optical_tracks import paths_for_cone
 from serial_refinement import leg_starts
 from source import trajectory
 from track_coordinates import fit as optimize
+from wcte.counting import track_counting
 
 
 def starts(model, restored, cone, photons, *, extra=()):
@@ -39,7 +40,7 @@ def starts(model, restored, cone, photons, *, extra=()):
                     continue
                 end, direction = trajectory(left, np.ones(1))[:2]
                 end = end[0] / 1000.0
-                if direction[0] @ missing[3:6] > np.cos(np.deg2rad(15.0)):
+                if direction[0] @ missing[3:6] >= track_counting.get().merge_cosine:
                     continue
                 child = missing.copy()
                 # Translate the residual arc to the parent's endpoint.
@@ -66,7 +67,7 @@ def starts(model, restored, cone, photons, *, extra=()):
                 support = [
                     np.sum(1.0 - model.obs.no_source(hit, (r[model.ix] / hit).clip(0.0, 1.0))) for r in core
                 ]
-                if min(support) >= 19.0:
+                if min(support) >= track_counting.get().scaled_support(19.0):
                     ranked.append((ll, j, masses, start, args))
     seen = []
     for _, j, masses, start, args in sorted(ranked, key=lambda row: -row[0]):
@@ -122,7 +123,7 @@ def timed_starts(compare, restored, cones=None):
                 occupancy = [
                     np.sum(1.0 - model.obs.no_source(hit, (row / hit).clip(0.0, 1.0))) for row in bright
                 ]
-                if min(occupancy) < 19.0:
+                if min(occupancy) < track_counting.get().scaled_support(19.0):
                     continue
                 arrivals, elapsed = [], 0.0
                 for (p, _), mass in zip(paths(x[:-2]), masses):
@@ -234,6 +235,6 @@ def check(compare, incumbent, restored, cone, photons, budget, *, scan=False, ti
         gap = measured.score - reference - 2.0 * (measured.joint - incumbent.joint).max(initial=0.0)
         record.update(gain=float(gap), extra_ring=evidence)
         reports.append(record)
-        if gap > MARGIN and evidence["lower_pmts"] >= 30.0:
+        if gap > MARGIN and evidence["lower_pmts"] >= track_counting.get().min_track_pmts:
             return True, reports
     return False, reports

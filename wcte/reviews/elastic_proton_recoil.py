@@ -3,8 +3,9 @@
 import numpy as np
 
 from finite_chains import factory
-from kink_boundary import angle_constraint
+from kink_boundary import turn_cosine
 from lineage_support import compare as count_lineage
+from wcte.counting import track_counting
 
 
 def mass_shell(parameters, medium):
@@ -15,8 +16,7 @@ def mass_shell(parameters, medium):
     d_parent[9] = 1000.0 * (1.0 - parameters[10])
     d_parent[10] = -1000.0 * parameters[9]
     d_kinetic = float(medium["energy_at"].derivative()(parent)) * d_parent
-    cosine, d_cosine = angle_constraint(parameters)
-    cosine += np.cos(np.radians(14.98))
+    cosine, d_cosine = turn_cosine(parameters)
     m = medium["mass"]
     fraction = kinetic / (kinetic + 2.0 * m)
     u = cosine * cosine * fraction
@@ -77,7 +77,7 @@ def revisit(competition, unconstrained, diagnostic):
         return None
     target_turn = float(np.degrees(np.arccos(target_cosine)))
     measured_turn = float(np.degrees(np.arccos(np.clip(cosine, -1.0, 1.0))))
-    if abs(target_turn - measured_turn) > 8.0 or target_turn < 15.02:
+    if abs(target_turn - measured_turn) > 8.0 or target_turn < track_counting.get().turn_offset(0.02):
         diagnostic["reason"] = "Measured direction is far from hydrogen kinematics"
         return None
     x = seed_turn(x, target_turn)

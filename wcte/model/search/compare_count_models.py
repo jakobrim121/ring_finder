@@ -16,6 +16,7 @@ from resolved_ring_evidence import first_pulse_support
 from timed_optical import arrival
 from timed_two_track import restore
 from wavefront_support import section_mapping
+from wcte.counting import track_counting
 
 
 @dataclass
@@ -282,12 +283,13 @@ def fit(event, model, pred, winner, audit, geometry, shapes, reference, limit):
     report["evidence"] = evidence
     # Keep the third core if even the best two-ring fit leaves
     # a countable first-pulse footprint under the original geometry.
-    if evidence["novel_without_best_module"] >= 30.0 or evidence["lower_pmts"] >= 30.0:
+    minimum = track_counting.get().min_track_pmts
+    if evidence["novel_without_best_module"] >= minimum or evidence["lower_pmts"] >= minimum:
         return None, [report]
     if base is not reference_fit:
         origin = compare.resolved(rival, reference_fit)
         report["selected_geometry_evidence"] = origin
-        if origin["lower_pmts"] >= 30.0:
+        if origin["lower_pmts"] >= minimum:
             return None, [report]
     report["accepted"] = True
     return (rival.fractions, rival.record, report), [report]

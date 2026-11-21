@@ -2,9 +2,6 @@
 
 import numpy as np
 
-LINEAGE_COSINE = np.cos(np.deg2rad(15.0))
-
-
 def coordinates(paths, photons):
     return dict(
         vertices=1000.0 * paths[:, :3],

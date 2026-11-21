@@ -3,6 +3,7 @@
 from functools import lru_cache
 
 import numpy as np
+from wcte.counting import track_counting
 from numba import njit
 
 from analog_optical import contain_finite
@@ -92,7 +93,7 @@ def scan(event, paths, shares, excess, scale):
                 strength, axis, opening = score[a, b, side], grid[a], OPENINGS[b]
                 if strength < 9.0:
                     break
-                if axis @ p[3:6] > np.cos(np.deg2rad(20.0)):
+                if axis @ p[3:6] > np.cos(np.deg2rad(track_counting.get().turn_offset(5.0))):
                     continue
                 if any(axis @ prior > 0.97 and abs(opening - angle) < 0.11 for prior, angle in chosen):
                     continue

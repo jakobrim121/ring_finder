@@ -4,15 +4,16 @@ import numpy as np
 
 from chain_sources import paths
 from source import trajectory
+from wcte.counting import track_counting
 
 
 def separated_directions(model, state):
-    """Leave uncertainty around the fixed 15-degree lineage boundary."""
+    """Resolve a turn beyond the configured boundary and the angular uncertainty."""
     incoming, outgoing = [p for p, _ in paths(state["parameters"][: model.ng])]
     tangent = trajectory(incoming, np.array([1.0]))[1][0]
     width = np.hypot(np.exp(incoming[11]), np.exp(outgoing[11]))
     angle = np.arccos(np.clip(tangent @ outgoing[3:6], -1.0, 1.0))
-    return float(angle), bool(angle > np.deg2rad(15.0) + 2.0 * width)
+    return float(angle), bool(angle > track_counting.get().merge_angle_rad + 2.0 * width)
 
 
 def arc(path, left, right):

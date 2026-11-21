@@ -7,6 +7,7 @@ from coupled_model import Model as Coupled
 from electron import turning
 from source import trajectory
 from track_coordinates import Chart, fit
+from wcte.counting import track_counting
 
 
 class TwoArcs(Coupled):
@@ -106,7 +107,7 @@ def trial(model, state, iterations=24, maximum_evaluations=40, *, aperture=None,
         return None
     light = state["posterior"][1:].sum(0)
     support = np.sum(1 - fine.obs.no_source(state["means_hit"], light))
-    if support < 30 or not np.any(light > 0.5):
+    if support < track_counting.get().min_track_pmts or not np.any(light > 0.5):
         return None
     fractions = np.column_stack([1.0 - light, light])
     return (

@@ -8,6 +8,7 @@ import numpy as np
 from compare_count_models import Comparison
 from gated_photon_time import series
 from predictive_score import log_probabilities
+from wcte.counting import track_counting
 
 
 @njit(cache=True)
@@ -121,4 +122,4 @@ def optical_has_weak_core(model, geometry, shapes, amplitude):
     # A core's few photons can be concentrated in one module or be
     # interleaved with a brighter source. Allow enough charge to cover two
     # visibility thresholds before dismissing the smaller model.
-    return min(support) < 2.0 * 30.0
+    return min(support) < 2.0 * track_counting.get().min_track_pmts

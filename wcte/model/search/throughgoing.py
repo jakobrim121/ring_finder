@@ -7,6 +7,7 @@ from readout import observation, profile
 from wctering.likelihood.crossing import intervals
 from wctering.likelihood.geometry import active_geometry, common_background
 from wctering.seeding.coherent_timing import C, N_GROUP, N_PHASE
+from wcte.counting import track_counting
 
 
 def line_times(positions, center, direction, opening):
@@ -146,7 +147,7 @@ def fit(event, bank, *, allow_stopping=False):
                 strong = np.minimum(z, 2.0) * (abs(errors) < 2.5)
                 for low, high in water:
                     in_water = (s >= low - 0.04) & (s <= high + 0.04)
-                    if np.count_nonzero(in_water & (strong > 0.25)) < 30:
+                    if np.count_nonzero(in_water & (strong > 0.25)) < track_counting.get().min_track_pmts:
                         continue
                     from charge_starts import weighted_quantile
 
@@ -181,7 +182,7 @@ def assess(bg, shape, ix, q, z, errors, s, water, c, a, theta, width, obs, loss,
     weights = direct * inside * in_time
     coverage = float(weights.sum() / np.minimum(z, 2.0).sum())
     photon_support = float(np.sum(1 - obs.no_source(means[ix], coherent)))
-    if photon_support < 30 or not np.any(coherent > 0.5):
+    if photon_support < track_counting.get().min_track_pmts or not np.any(coherent > 0.5):
         return None
     limits = np.linspace(water[0][0], water[-1][1], 5)
     longitudinal = np.histogram(s, bins=limits, weights=weights)[0]
@@ -196,7 +197,7 @@ def assess(bg, shape, ix, q, z, errors, s, water, c, a, theta, width, obs, loss,
         chord_end_support=observed_intervals(s, weights, water),
         longitudinal_quarter_fractions=(longitudinal / max(longitudinal.sum(), 1e-20)).tolist(),
         coherent_longitudinal_span_m=float(np.diff(np.quantile(s[weights > 0.5], [0.05, 0.95]))[0])
-        if np.count_nonzero(weights > 0.5) >= 30
+        if np.count_nonzero(weights > 0.5) >= track_counting.get().min_track_pmts
         else 0.0,
         emitting_intervals=water,
         amplitudes=amps.tolist(),

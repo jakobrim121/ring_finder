@@ -13,6 +13,7 @@ from joined_segments import arc
 from material import material
 from source import raw, trajectory
 from wctering.seeding.coherent_timing import C
+from wcte.counting import track_counting
 
 
 def parent_tracks(one, one_state, two, state, short):
@@ -62,7 +63,7 @@ def search(event, one, one_state, two, state, fractions, short):
     """Profile a connected recoil over physical energy and emitting length.
 
     The dominant track is held at each detector-derived solution. The recoil
-    must retain fewer than 30 expected PMTs and explain timed charge from
+    must remain below the PMT floor and explain timed charge from
     the apparent split. Optical response remains a shared nuisance.
     """
     rival = paths(state["parameters"][: two.ng])[short][0]
@@ -204,7 +205,7 @@ def shorten(
     quadrature = abs(model.obs.score(low, model.ix)[0] - ll)
     source = np.clip(efficiency * core[model.ix] / mean[model.ix], 0.0, 1.0)
     support = float(np.sum(1.0 - model.obs.no_source(mean[model.ix], source)))
-    if quadrature >= 0.01 or support >= 30.0:
+    if quadrature >= 0.01 or support >= track_counting.get().min_track_pmts:
         return None
 
     # A recoil emitted at the same interaction has a common event clock.

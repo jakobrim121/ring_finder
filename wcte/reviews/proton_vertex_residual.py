@@ -4,6 +4,7 @@ import numpy as np
 
 from finite_chains import factory, refine
 from short_kink import matched
+from wcte.counting import track_counting
 
 
 def residual_directions(model, origin, direction, energies, span, score_gradient, axes):
@@ -16,9 +17,10 @@ def residual_directions(model, origin, direction, energies, span, score_gradient
     across = np.cross(direction, tangent)
     angle = np.linspace(0.0, 2.0 * np.pi, 20, endpoint=False)
     azimuth = np.cos(angle)[:, None] * tangent + np.sin(angle)[:, None] * across
-    turns = np.radians([17.0, 24.0, 34.0, 46.0, 59.0])
+    rules = track_counting.get()
+    turns = np.radians([rules.turn_offset(offset) for offset in (2.0, 9.0, 19.0, 31.0, 44.0)])
     rays = np.concatenate([np.cos(turn) * direction + np.sin(turn) * azimuth for turn in turns])
-    measured = [axis for axis in axes if 0.46 < axis @ direction < np.cos(np.radians(15.0))]
+    measured = [axis for axis in axes if 0.46 < axis @ direction < rules.merge_cosine]
     if measured:
         rays = np.vstack([rays, measured])
     difference = model.pos - origin
@@ -227,11 +229,13 @@ def review(captured, before, original):
             or audit["retained"] < 0.72
             or audit["retained_signal"] < 0.9
             or (min(audit["distributed"]) < 25.0)
-            or (min(audit["support"]) < 35.0)
+            or (min(audit["support"]) < track_counting.get().scaled_support(35.0))
         ):
             continue
         independently_owned = margin.min() >= 30.0 and audit["independent_pe"] >= 15.0
-        consistently_split = margin.min() >= 45.0 and min(audit["support"]) >= 45.0
+        consistently_split = (
+            margin.min() >= 45.0 and min(audit["support"]) >= track_counting.get().scaled_support(45.0)
+        )
         if independently_owned or consistently_split:
             folded = folded_proton(choice, before, trial, logn)
             if folded is not None:
@@ -255,7 +259,7 @@ def review(captured, before, original):
                 and (audit["retained"] >= 0.8)
                 and (audit["retained_signal"] >= 0.9)
                 and (audit["independent_pe"] >= 18.0)
-                and (min(audit["support"]) >= 45.0)
+                and (min(audit["support"]) >= track_counting.get().scaled_support(45.0))
                 and (min(audit["distributed"]) >= 35.0)
             ):
                 return (
@@ -277,7 +281,7 @@ def review(captured, before, original):
             not audit["incoming_preserved"]
             or audit["retained"] < 0.9
             or audit["retained_signal"] < 0.97
-            or (min(audit["support"]) < 30.0)
+            or (min(audit["support"]) < track_counting.get().min_track_pmts)
             or ((rank(trial, logn) - control).min() < 6.6349)
         ):
             continue
@@ -298,7 +302,7 @@ def review(captured, before, original):
             and audit["retained"] >= 0.9
             and (audit["retained_signal"] >= 0.97)
             and (audit["independent_pe"] >= 12.0)
-            and (min(audit["support"]) >= 40.0)
+            and (min(audit["support"]) >= track_counting.get().scaled_support(40.0))
             and (min(audit["distributed"]) >= 30.0)
             and (margin.min() >= 6.6349)
         ):
@@ -337,7 +341,7 @@ def folded_proton(choice, before, split, logn):
     left = q[:, None] * np.maximum(old - light[:, None], 0.0)
     outside = [float(x.sum() - np.bincount(module_ids, weights=x).max(initial=0.0)) for x in left.T]
     nearly_collinear = (
-        joined["turn_deg"] <= 9.0
+        joined["turn_deg"] <= track_counting.get().turn_offset(-6.0)
         and min(evidence) >= 32.0
         and held >= 20.0
         and min(retained) >= 0.86

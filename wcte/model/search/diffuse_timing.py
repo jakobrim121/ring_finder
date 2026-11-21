@@ -10,6 +10,7 @@ from residual_axes import timed_residual_vertices
 from timed_charged_light import projected_aperture
 from timed_optical import arrival
 from wctering.seeding.coherent_timing import C, N_GROUP
+from wcte.counting import track_counting
 
 
 def isotropic_shape(model, point):
@@ -249,7 +250,7 @@ def fit(event, model, geometry, shapes, amplitudes, incumbent):
         retain = [
             float(q[(hard == j) & (labels == j)].sum() / q[labels == j].sum()) for j in range(1, count + 1)
         ]
-        if min(support) < 30.0 or min(retain) < 0.65:
+        if min(support) < track_counting.get().min_track_pmts or min(retain) < 0.65:
             continue
         yield (
             gain,

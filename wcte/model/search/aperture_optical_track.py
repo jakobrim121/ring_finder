@@ -10,10 +10,11 @@ from charge_starts import recoil_start
 from coupled_model import Model as Coupled
 from entrance_track import Aperture
 from gated_optical_fit import PromptOptics
-from low_angle_continuation import LINEAGE_COSINE, verified
+from low_angle_continuation import verified
 from material import material
 from wctering.likelihood.charge import direction
 from wctering.seeding.coherent_timing import C, N_PHASE
+from wcte.counting import track_counting
 
 
 def tangent_frame(axis):
@@ -97,7 +98,7 @@ class ThroughWindow:
             (x[:2] @ x[:2] - self.port.radius**2) / self.port.radius,
             -z[5],
             z[16] - z[7],
-            z[3:6] @ z[12:15] - LINEAGE_COSINE,
+            z[3:6] @ z[12:15] - track_counting.get().merge_cosine,
         ]
 
     def water_jacobian(self, x):
@@ -130,10 +131,12 @@ def fit(event, geometry, background, budget):
     if state is None or set(state[2].argmax(0)) - {0} != {1, 2}:
         return None
     support = [np.sum(1.0 - optics.obs.no_source(state[3][optics.ix], w)) for w in state[2][1:]]
-    if min(support) < 30.0:
+    if min(support) < track_counting.get().min_track_pmts:
         return None
     paths = z[:18].reshape(2, 9)
     angle = np.degrees(np.arccos(np.clip(paths[0, 3:6] @ paths[1, 3:6], -1.0, 1.0)))
+    if angle <= track_counting.get().track_merge_angle_deg:
+        return None
     photons = softmax(np.r_[0.0, z[18:20]]) * np.exp(z[20])
     return (
         paths,

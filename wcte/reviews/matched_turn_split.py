@@ -2,20 +2,24 @@
 
 import numpy as np
 
-from kink_boundary import angle_constraint
+from kink_boundary import turn_cosine
 from lineage_support import compare as measured_lineage
+from wcte.counting import track_counting
+from wcte.counting import track_counting
 
 
 def turn_degrees(x):
-    cosine, _ = angle_constraint(x)
-    cosine += np.cos(np.radians(14.98))
+    cosine, _ = turn_cosine(x)
     return float(np.degrees(np.arccos(np.clip(cosine, -1.0, 1.0))))
 
 
-def model_at(competition, particles, order, separate, *, aperture=False, turn_floor=15.02):
+def model_at(competition, particles, order, separate, *, aperture=False, turn_floor=None):
     from coupled_model import Model
 
-    threshold = np.cos(np.radians(turn_floor if separate else 14.98))
+    rules = track_counting.get()
+    # Leave 0.02 degrees on each side to keep solver tolerance off the cut.
+    boundary = (turn_floor or rules.turn_offset(0.02)) if separate else rules.turn_offset(-0.02)
+    threshold = np.cos(np.radians(boundary))
     sign = -1.0 if separate else 1.0
 
     e, m = competition.event, competition.model
@@ -29,8 +33,8 @@ def model_at(competition, particles, order, separate, *, aperture=False, turn_fl
 
     def all_constraints(x):
         values, derivative = control(x)
-        cosine, gradient = angle_constraint(x)
-        value = sign * (cosine + np.cos(np.radians(14.98)) - threshold)
+        cosine, gradient = turn_cosine(x)
+        value = sign * (cosine - threshold)
         return np.r_[values, value], np.vstack([derivative, sign * gradient])
 
     model.all_constraints = all_constraints
@@ -51,12 +55,14 @@ def seed_turn(x, degrees):
     return x
 
 
-def qualify(competition, particles, x, *, separate, aperture=False, turn_floor=15.02):
+def qualify(competition, particles, x, *, separate, aperture=False, turn_floor=None):
     from balanced_search import feasible
     from bare_residual_search import repair_energy
     from chain_soft_search import canonical
     from track_coordinates import fit
 
+    if separate and track_counting.get().track_merge_angle_deg == 180.0:
+        return None
     nfev = 0
     x = x.copy()
     for order in (8, 16, 32):
@@ -127,12 +133,15 @@ def compare(competition, record, *, aperture=False):
         return [], dict(reason="No fitted two-section incumbent")
     x = np.asarray(found["parameters"], float)
     angle = turn_degrees(x)
-    if angle >= 15.0:
+    rules = track_counting.get()
+    if angle > rules.track_merge_angle_deg:
         return [], dict(reason="Incumbent's turn is already resolved", old_turn=angle)
+    if rules.track_merge_angle_deg == 180.0:
+        return [], dict(reason="No separate turn exceeds the requested angle", old_turn=angle)
     parts = tuple(found["particles"])
     model, state, _ = restore(competition.event, competition.model.bg, found)
     sections = matched(competition, model, state, ((0,), (1,)), "unmerged_incumbent_sections")
-    if sections is None or min(r["gate_pmt_support"] for r in sections["neighborhoods"]) < 28.0:
+    if sections is None or min(r["gate_pmt_support"] for r in sections["neighborhoods"]) < rules.scaled_support(28.0):
         return [], dict(reason="Insufficient measured light in two sections", old_turn=angle)
     seed = at_aperture(x) if aperture else x
     if seed is None:
@@ -140,7 +149,7 @@ def compare(competition, record, *, aperture=False):
     coarse = model_at(competition, parts, 4, True, aperture=aperture)
     rank = []
     for shift in (0.78, 1.0, 1.24):
-        for turn in (16.5, 23.0, 33.0):
+        for turn in (rules.turn_offset(offset) for offset in (1.5, 8.0, 18.0)):
             q = seed_turn(seed, turn)
             q[10] = np.clip(q[10] * shift, 0.001, 0.998)
             q = canonical(coarse, q)
@@ -162,7 +171,7 @@ def compare(competition, record, *, aperture=False):
             )
             result.append(fit)
     if result:
-        unchanged = seed_turn(seed, min(turn_degrees(seed), 14.75)) if aperture else seed
+        unchanged = seed_turn(seed, min(turn_degrees(seed), rules.turn_offset(-0.25))) if aperture else seed
         rival = qualify(competition, parts, unchanged, separate=False, aperture=aperture)
         if rival is not None:
             result.append(rival)

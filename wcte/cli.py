@@ -104,9 +104,9 @@ def main(argv=None):
     parser.add_argument("--prompt-window-ns", type=float, nargs=2, metavar=("LOW", "HIGH"))
     parser.add_argument("--clock-decimals", type=int, help="Round median-relative times after prompt selection")
     parser.add_argument("--min-track-pmts", type=float, default=DEFAULT_TRACK_COUNTING.min_track_pmts,
-                        help="Minimum effective PMT support for a counted track section (default %(default)g)")
+                        help="Minimum effective PMT support for a counted ring (default %(default)g)")
     parser.add_argument("--track-merge-angle-deg", type=float, default=DEFAULT_TRACK_COUNTING.track_merge_angle_deg,
-                        help="Maximum turn to count connected track sections together (default %(default)g degrees)")
+                        help="Largest resolved turn counted as one ring (default %(default)g degrees)")
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--workers", type=int, default=1)
     args = parser.parse_args(argv)

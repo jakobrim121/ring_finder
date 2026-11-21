@@ -12,6 +12,7 @@ from material import material
 from source import raw
 from timed_charged_light import photon_time
 from timed_optical import arrival
+from wcte.counting import track_counting
 
 
 def templates(center, direction, photons):
@@ -191,7 +192,7 @@ def estimates(
             [np.sum(1.0 - model.obs.no_source(predicted, np.clip(f, 0.0, 1.0))) for f in cores]
         )
         measured_parts = fractions[:, np.arange(len(shapes)) != index]
-        visible = cores[support >= 30.0].T
+        visible = cores[support >= track_counting.get().min_track_pmts].T
         measured_parts[:, 0] += fractions[:, index] - visible.sum(1)
         measured_parts = np.column_stack([measured_parts, visible])
         # A one-direction template has two ranges and an explicit spread.
@@ -199,7 +200,7 @@ def estimates(
         results.append(
             dict(
                 ring=section,
-                cores=int((support >= 30.0).sum()),
+                cores=int((support >= track_counting.get().min_track_pmts).sum()),
                 support=support,
                 charge_fractions=measured_parts,
                 joint_gain=float(ll - check[0]),

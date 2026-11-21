@@ -1,7 +1,8 @@
-"""Propagate PMT readout uncertainty to the probability of 30 visible sensors."""
+"""Propagate readout uncertainty to the probability of countable PMT support."""
 
 import numpy as np
 from numba import njit
+from wcte.counting import track_counting
 
 
 @njit(cache=True)
@@ -18,9 +19,11 @@ def tail(sensors, threshold):
     return min(max(at_least, 0.0), 1.0)
 
 
-def visibility(ids, likelihood, threshold=30):
+def visibility(ids, likelihood):
     tubes, inverse = np.unique(ids, return_inverse=True)
     absent = np.ones(len(tubes))
     np.multiply.at(absent, inverse, 1.0 - np.clip(likelihood, 0.0, 1.0))
     pmt_support = 1.0 - absent
-    return float(tail(pmt_support, threshold)), float(pmt_support.sum())
+    threshold = track_counting.get().min_unique_pmts
+    probability = tail(pmt_support, threshold) if threshold <= len(tubes) else 0.0
+    return float(probability), float(pmt_support.sum())

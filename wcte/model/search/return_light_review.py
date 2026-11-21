@@ -180,7 +180,6 @@ def check(compare, measured, restored, cones, *, clock=None):
             effective_gain_modules=int(np.count_nonzero(delta > MARGIN)),
         )
         # This is a lack-of-fit veto, so it preserves the existing count.
-        # It does not create a new counted ring below the 30-PMT floor.
         # A strong residual across multiple modules invalidates the
         # two-section fit even when its additional arc is concentrated.
         if error < 0.01 and gain > MARGIN and report["effective_gain_modules"] >= 3:

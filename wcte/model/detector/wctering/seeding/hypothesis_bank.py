@@ -107,9 +107,8 @@ def fit_hypothesis_bank(pmt_ids, positions, charges, times, config, event_id=Non
         usable_unique_pmts=len(set(ids.tolist())),
         usable_charge_pe=float(q.sum()),
     )
-    # Reproduce the rare sub-60-PMT legacy H3 requests as well as the unified
-    # >=60-PMT bank, so feature availability is identical to its training data.
-    make_three = d["usable_unique_pmts"] >= 60
+    # Keep the extra H3 rescue below the nominal two-ring support screen.
+    make_three = d["usable_unique_pmts"] >= 2 * cfg.minimum_observable_ring_pmts
     if not make_three:
         gate = classify_with_resolved_cone_gate(d, phase_index=PHASE_INDEX)
         rescue = two_ring_evidence_diagnostics(

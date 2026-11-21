@@ -5,6 +5,7 @@ import numpy as np
 from calibrated_count_review import supported_shares
 from light_competition import Competition, physical_template
 from light_model_bank import measured_bank
+from wcte.counting import track_counting
 
 
 def eligible(prediction, original, particle):
@@ -69,7 +70,8 @@ def review(captured, prediction, original, particle, continuation):
         if trial["count"] == 2
         and all(
             (
-                n["gate_pmt_support"] >= 30.0 and n["gate_leave_one_module"] >= 20.0
+                n["gate_pmt_support"] >= track_counting.get().min_track_pmts
+                and n["gate_leave_one_module"] >= track_counting.get().scaled_support(20.0)
                 for n in trial["neighborhoods"]
             )
         )
@@ -110,7 +112,9 @@ def review(captured, prediction, original, particle, continuation):
     if linked:
         singles.extend(linked_models(competition, original, particle))
     for single in sorted(singles, key=lambda trial: evidence(trial)[1], reverse=True):
-        if min((n["gate_leave_one_module"] for n in single["neighborhoods"])) < 35.0:
+        if min(n["gate_leave_one_module"] for n in single["neighborhoods"]) < track_counting.get().scaled_support(
+            35.0
+        ):
             continue
         new = single["fractions"]["prompt"]
         retained = q @ np.minimum(old, new[:, 1:]) / np.maximum(mass, 1e-12)
@@ -149,6 +153,7 @@ def linked_models(competition, original, particle):
     """Refit an attached two-section particle history at the surveyed aperture."""
     from matched_turn_split import at_aperture, qualify, seed_turn, turn_degrees
 
+    rules = track_counting.get()
     records = linked_records(original, particle)
     valid = []
     visited = set()
@@ -159,8 +164,8 @@ def linked_models(competition, original, particle):
         visited.add(stamp)
         start = at_aperture(np.asarray(stamp, float))
         if start is not None:
-            if turn_degrees(start) >= 14.98:
-                start = seed_turn(start, 13.0)
+            if turn_degrees(start) >= rules.turn_offset(-0.02):
+                start = seed_turn(start, rules.turn_offset(-2.0))
             trial = qualify(competition, tuple(record["particles"]), start, separate=False, aperture=True)
             if trial is not None:
                 valid.append(dict(trial, label="linked_aperture_" + "_".join(record["particles"])))

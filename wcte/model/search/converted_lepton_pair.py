@@ -16,6 +16,7 @@ from module_optics import conditional
 from module_supported_ring import lower_bound
 from recoil_competitor import render
 from track_coordinates import fit as fit_geometry
+from wcte.counting import track_counting
 
 
 @dataclass(frozen=True)
@@ -134,7 +135,7 @@ def candidate(event, model, compare, primary, parameters, port, old, budget, *, 
         minimum = min(
             lower_bound(event.pmt_ids, row)["lower_statistical"] for row in compare.supports(measured).T
         )
-        if minimum < 30.0 or set(shares.argmax(1)) - {0} != {1, 2, 3}:
+        if minimum < track_counting.get().min_track_pmts or set(shares.argmax(1)) - {0} != {1, 2, 3}:
             return None
         record["lowest_core_support"] = minimum
     return gain, measured, mean, record
@@ -167,9 +168,9 @@ def coverage(compare, old, measured, mean, old_mean, *, predictive=False):
     delta -= conditional(model.active, model.ix, event.charges_pe, old_mean)
     within = float(delta.sum() - delta.max(initial=0.0))
     accepted = (
-        min(x["lower_statistical"] for x in limits) >= 30.0
-        and unresolved["pmt_support"] < 30.0
-        and novel["pmt_support"] < 30.0
+        min(x["lower_statistical"] for x in limits) >= track_counting.get().min_track_pmts
+        and unresolved["pmt_support"] < track_counting.get().min_track_pmts
+        and novel["pmt_support"] < track_counting.get().min_track_pmts
         and retained.min() >= 0.60
         and (predictive or within > 0.0)
         and set(measured.fractions.argmax(1)) - {0} == {1, 2}

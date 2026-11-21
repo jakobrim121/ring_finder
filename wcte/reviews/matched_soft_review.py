@@ -8,6 +8,7 @@ from light_competition import Competition
 from light_model_bank import measured_bank
 from shared_scoring import match_charge_shares
 from sparse_soft_sources import compare
+from wcte.counting import track_counting
 
 
 def review(captured, prediction, original, particle, diagnostics):
@@ -81,7 +82,9 @@ def review(captured, prediction, original, particle, diagnostics):
         for r in alternatives
         if r["count"] == count - 1
         and all(
-            n["gate_pmt_support"] >= 35.0 and n["gate_leave_one_module"] >= 30.0 for n in r["neighborhoods"]
+            n["gate_pmt_support"] >= track_counting.get().min_track_pmts
+            and n["gate_leave_one_module"] >= track_counting.get().min_track_pmts
+            for n in r["neighborhoods"]
         )
     ]
     for trial in sorted(candidates, key=mixed, reverse=True):

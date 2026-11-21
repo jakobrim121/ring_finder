@@ -5,6 +5,7 @@ import numpy as np
 from beam_energy_step import comparisons
 from light_competition import Competition, optical_template, physical_template
 from shared_scoring import match_charge_shares
+from wcte.counting import track_counting
 
 
 def review(captured, prior, details, particle, *, selected_history=None):
@@ -55,7 +56,9 @@ def review(captured, prior, details, particle, *, selected_history=None):
     previous = prior["fractions"]
     q = np.minimum(prior["charges"], 2.0)
     for r in sorted(trials, key=information, reverse=True):
-        if r["count"] != 2 or any(p["gate_pmt_support"] < 30.0 for p in r["neighborhoods"]):
+        if r["count"] != 2 or any(
+            p["gate_pmt_support"] < track_counting.get().min_track_pmts for p in r["neighborhoods"]
+        ):
             continue
         gain = information(r) - information(control)
         if gain < 6.6349:

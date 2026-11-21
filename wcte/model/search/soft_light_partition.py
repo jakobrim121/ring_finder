@@ -6,6 +6,7 @@ from conversion_light_budget import estimates
 from low_angle_continuation import coordinates
 from residual_joint_optics import path_from_geometry, prompt
 from timed_optical import arrival
+from wcte.counting import track_counting
 
 
 def keep_main(event, model, geometry, shapes, amplitudes, previous, optical, extra):
@@ -41,11 +42,11 @@ def keep_main(event, model, geometry, shapes, amplitudes, previous, optical, ext
     dominant = f[:, 1]
     charge = q * dominant
     support = float(np.sum(1.0 - model.obs.no_source(best["means"], dominant)))
-    if support < 30.0 or charge.sum() < 20.0:
+    if support < track_counting.get().min_track_pmts or charge.sum() < 20.0:
         return None
     timed, _ = prompt(event, arrival(event, new_geometry)[:, [extra]], f)
     own = (f.argmax(1) == 1) & (timed[:, 0] >= 0.25 * q)
-    if own.sum() < 20 or len(np.unique(event.pmt_ids[own] // 100)) < 3:
+    if own.sum() < track_counting.get().scaled_support(20) or len(np.unique(event.pmt_ids[own] // 100)) < 3:
         return None
     return (
         best["charge_ll"],

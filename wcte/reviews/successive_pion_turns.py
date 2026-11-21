@@ -10,6 +10,7 @@ from light_competition import Competition
 from light_model_bank import measured_bank
 from proton_vertex_residual import rank
 from short_kink import matched
+from wcte.counting import track_counting
 
 
 def eligible(prediction, original, particle):
@@ -43,7 +44,7 @@ def plans(competition, source, optical):
     model = factory(competition.event, competition.model.bg, ("pion",) * 3, 4)
     axes = [np.asarray(axis, float) for _, g, _ in optical for axis in g["axes"]]
     axes = [r for i, r in enumerate(axes) if all(r @ left < 0.994 for left in axes[:i])]
-    minimum, maximum = np.cos(np.radians([60.0, 19.0]))
+    minimum, maximum = np.cos(np.radians([60.0, track_counting.get().turn_offset(4.0)]))
     plans = []
     for a in (0.19, 0.32, 0.46):
         first = split(track, a, "pion", "pion", 1.0)
@@ -149,7 +150,7 @@ def review(captured, prediction, original, particle):
         if (
             min(delta) >= 35.0
             and min(held) >= 15.0
-            and min(support) >= 35.0
+            and min(support) >= track_counting.get().min_track_pmts
             and min(spread) >= 25.0
             and retained >= 0.88
             and supported_shares(prediction, shares, "pion")

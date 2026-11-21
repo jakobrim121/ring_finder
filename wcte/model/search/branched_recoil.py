@@ -12,6 +12,7 @@ from recoil_competitor import parent_tracks, render
 from source import trajectory
 from timed_charged_light import photon_time
 from wctering.seeding.coherent_timing import C
+from wcte.counting import track_counting
 
 
 def child_at(parent, daughter, frame, z):
@@ -34,7 +35,7 @@ def child_at(parent, daughter, frame, z):
 
 
 def fit(event, single, single_state, rival, rival_state, fractions, short, budget=28):
-    """Compare a connected charged recoil with fewer than 30 visible PMTs."""
+    """Compare a connected charged recoil below the ring support floor."""
     weak = paths(rival_state["parameters"][: rival.ng])[short][0]
     main = paths(rival_state["parameters"][: rival.ng])[1 - short][0]
     seeds = list(parent_tracks(single, single_state, rival, rival_state, short))
@@ -166,7 +167,7 @@ def refine(event, model, parent, parent_mass, child, child_mass, u, response, di
     if hardware_margin(child) <= 1e-5 or abs(coarse - ll) >= 0.01:
         return None
     support = float(np.sum(1.0 - model.obs.no_source(mean, core / mean)))
-    if support >= 30.0:
+    if support >= track_counting.get().min_track_pmts:
         return None
     parent_time = photon_time(event, model.normals[model.ix], [parent], parent_mass)
     child_time = photon_time(event, model.normals[model.ix], [child], child_mass)

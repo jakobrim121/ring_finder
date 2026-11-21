@@ -7,6 +7,7 @@ from light_model_bank import measured_bank
 from residual_cores import propose
 from retained_history import compare_on_history, restore_record
 from shared_scoring import match_charge_shares
+from wcte.counting import track_counting
 
 
 def review(captured, prediction, detail, continuation):
@@ -49,7 +50,7 @@ def review(captured, prediction, detail, continuation):
         if (
             r["count"] != 3
             or (margin := measure(r) - measure(old)) < 6.6349
-            or min(part["gate_pmt_support"] for part in r["neighborhoods"]) < 30.0
+            or min(part["gate_pmt_support"] for part in r["neighborhoods"]) < track_counting.get().min_track_pmts
         ):
             continue
         candidate = r["fractions"]["prompt"]

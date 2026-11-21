@@ -10,6 +10,8 @@ from dataclasses import asdict, dataclass
 from typing import Any, Mapping
 import math
 
+from wcte.counting import DEFAULT_TRACK_COUNTING
+
 
 @dataclass(frozen=True, slots=True)
 class RingFinderConfig:
@@ -19,10 +21,10 @@ class RingFinderConfig:
     prompt_peak_bandwidth_ns: float = 1.0
     prompt_peak_charge_cap_pe: float = 2.0
 
-    # A fit can use a ten-PMT seed; the final observable-ring floor is thirty.
+    # The two-cone solver requires ten assigned PMTs per seed component.
     minimum_partition_pmts: int = 10
-    minimum_observable_ring_pmts: int = 30
-    minimum_three_ring_pmts: int = 30
+    minimum_observable_ring_pmts: int = DEFAULT_TRACK_COUNTING.min_unique_pmts
+    minimum_three_ring_pmts: int = DEFAULT_TRACK_COUNTING.min_unique_pmts
     decision_threshold: float = 0.01
     three_ring_decision_threshold: float = 0.01
     enable_two_ring_evidence_rescue: bool = True
