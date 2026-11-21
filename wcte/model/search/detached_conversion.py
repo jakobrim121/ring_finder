@@ -22,6 +22,7 @@ from source import rule, trajectory
 from track_coordinates import fit as refine_track
 from wctering.likelihood.geometry import NORMALS, UPPER
 from wctering.seeding.coherent_timing import C, N_GROUP
+from wcte.counting import track_counting
 
 
 # The fitted directions describe mean light profiles. Their connection to
@@ -480,7 +481,7 @@ def refine(
     weight = np.minimum(event.charges_pe, 2.0) * weak
     overlap = float(weight @ own[2:].sum(0) / max(weight.sum(), 1e-15))
     support = float(np.sum(1.0 - fine.obs.no_source(mean[fine.ix], own[0])))
-    if overlap < min_overlap or support < 30.0 or not np.any(own[0] > 0.5):
+    if overlap < min_overlap or support < track_counting.get().min_track_pmts or not np.any(own[0] > 0.5):
         return None
     charge = float(fine.obs.score(mean, fine.ix)[0])
     # The 16-node parent already includes the conversion charge.
@@ -495,7 +496,7 @@ def refine(
             float(np.sum(1.0 - fine.obs.no_source(mean[fine.ix], response * row / mean[fine.ix])))
             for row in core
         ]
-        if count_arms and max(arm_support) < 30.0:
+        if count_arms and max(arm_support) < track_counting.get().min_track_pmts:
             return None
         if support_sides is not None and any(
             s * (v - 30.0) < 0.0 for s, v in zip(support_sides, arm_support)

@@ -827,6 +827,8 @@ def fit_event(raw, event_id, *, use_water_chord=True, early_candidate=None):
                 readout.positive = previous_kernel
         search_cpu = time.process_time() - begin
         np.testing.assert_allclose(fractions.sum(1), 1.0, atol=2e-14, rtol=0)
+        if rejected := optical.get("ring_definition_rejected_counts"):
+            diagnostics["ring_definition_rejected_optical_counts"] = rejected
         detail = dict(
             diagnostics,
             cpu_seconds=preparation_cpu + search_cpu,

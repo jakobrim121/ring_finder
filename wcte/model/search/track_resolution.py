@@ -9,6 +9,7 @@ from coherent_partition import prediction_time
 from geometry import hardware_margin
 from material import material
 from source import raw
+from wcte.counting import track_counting
 
 
 def profile_continuation(model, state, rival, rival_state, index, event):
@@ -107,7 +108,7 @@ def competing_footprint(event, one, two, fractions):
     short_prompt = optical[:, short] * np.exp(-0.5 * ((res[:, short] - clock) / 2.0) ** 2)
     owned = labels == short + 1
     independent = owned & (short_prompt > 0.35) & (on_line < 0.25)
-    if np.count_nonzero(independent) < 18:
+    if np.count_nonzero(independent) < track_counting.get().scaled_support(18):
         return None
     modules = np.unique(event.pmt_ids[independent] // 100, return_inverse=True)[1]
     total = np.bincount(modules, weights=q[independent] * short_prompt[independent])

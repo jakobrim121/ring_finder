@@ -14,6 +14,7 @@ from residual_joint_optics import path_from_geometry
 from residual_timing_vertices import refine as refine_vertices
 from resolved_ring_evidence import first_pulse_support
 from timed_charged_light import photon_time
+from wcte.counting import track_counting
 
 
 def optical_modes(event, model, bank, state, track, points):
@@ -145,7 +146,7 @@ def review(event, model, bank, track, state, fractions, budget, *, refine_tracks
             ll = model.obs.score(mean, model.ix)[0]
             share = response * direct[model.ix] / mean[model.ix]
             support = float(np.sum(1.0 - model.obs.no_source(mean[model.ix], share.clip(0.0, 1.0))))
-            if support >= 18.0:
+            if support >= track_counting.get().scaled_support(18.0):
                 score.append((ll, support, mass, p))
     reports, best = [], None
     for _, _, mass, p in sorted(score, key=lambda row: -row[0])[:budget]:
@@ -195,7 +196,7 @@ def review(event, model, bank, track, state, fractions, budget, *, refine_tracks
         )
         reports.append(report)
         if (
-            support >= 30.0
+            support >= track_counting.get().min_track_pmts
             and kept.min() >= 0.65
             and report["within"] > 0.0
             and set(proposed.argmax(1)) - {0} == {1, 2, 3}
@@ -256,7 +257,11 @@ def review(event, model, bank, track, state, fractions, budget, *, refine_tracks
             alternate = np.column_stack([1.0 - shares.sum(1), shares])
             detail.update(gain=float(gap), support=support)
             report["joint_refit"] = detail
-            if gap > MARGIN and min(support) >= 30.0 and set(alternate.argmax(1)) - {0} == {1, 2, 3}:
+            if (
+                gap > MARGIN
+                and min(support) >= track_counting.get().min_track_pmts
+                and set(alternate.argmax(1)) - {0} == {1, 2, 3}
+            ):
                 report["joint_refit"]["accepted"] = True
                 gain, proposed = gain + gap, alternate
     return (gain, proposed, report), reports

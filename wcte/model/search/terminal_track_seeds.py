@@ -13,6 +13,7 @@ from recoil_competitor import render
 from serial_refinement import leg_starts
 from source import trajectory
 from wctering.seeding.coherent_timing import C, N_GROUP, N_PHASE
+from wcte.counting import track_counting
 
 
 def peaks(event, model, state, *, variable_span=False):
@@ -60,7 +61,8 @@ def peaks(event, model, state, *, variable_span=False):
         excess = np.clip(-gradient[model.ix] * mean[model.ix], -0.7, 2.0)
         if np.count_nonzero(excess > 0.25) < 20:
             continue
-        axes = grid[grid @ tangent[0] < np.cos(np.deg2rad(18.0 if variable_span else 20.0))]
+        boundary = track_counting.get().turn_offset(3.0 if variable_span else 5.0)
+        axes = grid[grid @ tangent[0] < np.cos(np.deg2rad(boundary))]
         windows = (120.0, 300.0, 730.0) if variable_span else (240.0,)
         scores = ridge_scores(delta, distance, axes, time, q, excess, birth, windows)
         for length_mm, score in zip(windows, scores):
@@ -83,7 +85,7 @@ def ridge_peaks(strength, axes, delta, time, birth, charge, excess, limit, spans
     for flat in np.argsort(strength.ravel())[::-1]:
         j, k = np.unravel_index(flat, strength.shape)
         support, axis, opening = strength[j, k], axes[j], OPENINGS[k]
-        if support < 12.0:
+        if support < track_counting.get().scaled_support(12.0):
             break
         if any(axis @ prior > 0.972 for prior in found):
             continue
@@ -180,7 +182,7 @@ def evidence(event, single, trial, state, fractions, *, compare_soft=False, diag
         diagnostics.update(turn_deg=float(np.rad2deg(angle)), section_support=measured)
     if not resolved:
         return None
-    if min(measured) < 36.0:
+    if min(measured) < track_counting.get().scaled_support(36.0):
         return None
     if compare_soft == "resolved_continuation":
         from chain_sources import paths
@@ -191,7 +193,7 @@ def evidence(event, single, trial, state, fractions, *, compare_soft=False, diag
         # treats the mass as a fitted transport parameter.
         if (
             trial.particles[0] != trial.particles[1]
-            or np.rad2deg(angle) < 28.0
+            or np.rad2deg(angle) < track_counting.get().turn_offset(13.0)
             or sections[1][9] * sections[1][10] < 0.16
         ):
             return None
@@ -214,16 +216,16 @@ def evidence(event, single, trial, state, fractions, *, compare_soft=False, diag
         timed = pulse_support(event, trial, state, fractions)
         if diagnostics is not None:
             diagnostics["conditioned_support"] = timed
-        if timed is None or min(row["lower_statistical"] for row in timed) < 30.0:
+        if timed is None or min(row["lower_statistical"] for row in timed) < track_counting.get().min_track_pmts:
             return None
         # A bright overlapping continuation can be earlier than a real
         # daughter at the same tube. Use the probability of any daughter
         # PE when it has substantial support across separate modules.
-        if found is None and min(row["leave_one_module"] for row in timed) >= 50.0:
+        if found is None and min(row["leave_one_module"] for row in timed) >= track_counting.get().scaled_support(50.0):
             found = dict(short_section=int(np.argmin(measured)) + 1, conditioned_overlap=timed)
     if found is None:
         return None
-    if compare_soft and min(measured) < 65.0:
+    if compare_soft and min(measured) < track_counting.get().scaled_support(65.0):
         # A genuine recoil can lie below the ring definition. Compare its
         # calibrated PE budget at the fitted location before adding a ring.
         from recoil_competitor import search

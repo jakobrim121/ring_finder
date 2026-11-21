@@ -13,6 +13,7 @@ from joint_prompt_fit import wavefront
 from timed_optical import arrival
 from wctering.likelihood.charge import MAX_OPENING_RAD
 from wctering.seeding.coherent_timing import C, N_PHASE
+from wcte.counting import track_counting
 
 
 def path_from_geometry(geometry, j):
@@ -106,7 +107,7 @@ def solve(event, prototype, paths, photons, budget):
         return None
     fractions = (photons[:, None] * high[:, model.ix] / total[model.ix]).T
     support = [float(np.sum(1.0 - model.obs.no_source(total[model.ix], f))) for f in fractions.T[1:]]
-    if min(support) < 30.0 or set(fractions.argmax(1)) - {0} != set(range(1, k + 1)):
+    if min(support) < track_counting.get().min_track_pmts or set(fractions.argmax(1)) - {0} != set(range(1, k + 1)):
         return None
     return dict(
         ll=float(score),
@@ -182,7 +183,7 @@ def supports(event, old_time, incumbent, result):
     if (
         min(kept_total) < 0.65
         or min(kept) < 0.38
-        or separated.sum() < 18
+        or separated.sum() < track_counting.get().scaled_support(18)
         or len(np.unique(event.pmt_ids[separated] // 100)) < 3
         or np.ptp(clocks) > 9.0
     ):
@@ -205,7 +206,7 @@ def supports(event, old_time, incumbent, result):
         axis_dot = float(p[3:6] @ other[3:6])
         delta = p[:3] - other[:3]
         transverse = np.linalg.norm(delta - (delta @ other[3:6]) * other[3:6])
-        if axis_dot > np.cos(np.deg2rad(15.0)) and transverse < 0.25:
+        if axis_dot >= track_counting.get().merge_cosine and transverse < 0.25:
             return None
         for incoming, outgoing in ((extra, j), (j, extra)):
             x, y = paths[incoming], paths[outgoing]

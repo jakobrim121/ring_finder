@@ -16,6 +16,7 @@ from serial_refinement import leg_starts
 from source import trajectory
 from terminal_track_seeds import pulse_support, ridge_peaks
 from wctering.seeding.coherent_timing import C
+from wcte.counting import track_counting
 
 
 def peaks(event, model, state):
@@ -53,7 +54,8 @@ def peaks(event, model, state):
         cosine = grid @ tangent
         # Screen turns close to the lineage boundary too. Their fits later
         # have to beat a continuously bending charged trajectory.
-        axes = grid[(cosine < np.cos(np.deg2rad(11.0))) & (cosine > 0.30)]
+        preview = np.cos(np.radians(track_counting.get().turn_offset(-4.0)))
+        axes = grid[(cosine < preview) & (cosine > 0.30)]
         bend = x[6:9] - (x[6:9] @ tangent) * tangent
         if np.linalg.norm(bend) > 0.03:
             bend /= np.linalg.norm(bend)
@@ -157,7 +159,7 @@ def evidence(
     direction = trajectory(local[0], np.ones(1))[1][0]
     turn = np.arccos(np.clip(direction @ local[1][3:6], -1.0, 1.0))
     diagnostics["turn_deg"] = float(np.rad2deg(turn))
-    if turn < np.deg2rad(15.0):
+    if turn <= track_counting.get().merge_angle_rad:
         return False
     if resolved_turn:
         # Use the same separation test as the other connected-track routes.
@@ -173,7 +175,7 @@ def evidence(
         return False
     support = pulse_support(event, model, state, fractions)
     diagnostics["conditioned_support"] = support
-    if support is None or min(row["leave_one_module"] for row in support) < 45.0:
+    if support is None or min(row["leave_one_module"] for row in support) < track_counting.get().scaled_support(45.0):
         return False
     weak = int(np.argmin([row["pmt_support"] for row in support]))
     null = continuous_fit(event, *single, model, state, weak)

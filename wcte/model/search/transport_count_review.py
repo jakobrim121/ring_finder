@@ -15,6 +15,7 @@ from physical_pulse import components
 from source import raw
 from timed_two_track import restore
 from wavefront_support import section_mapping
+from wcte.counting import track_counting
 
 
 @dataclass
@@ -132,9 +133,9 @@ def plausible_dropout(comparison, old, fit, mean, basis, amplitude):
     leftover = np.maximum(old_support[:, rem] - new_support.max(1), 0.0)
     missing = lower_bound(comparison.event.pmt_ids, leftover)
     per_core = [lower_bound(comparison.event.pmt_ids, u) for u in new_support.T]
-    adequate = min(r["lower_statistical"] for r in per_core) >= 30.0
+    adequate = min(r["lower_statistical"] for r in per_core) >= track_counting.get().min_track_pmts
     keep = np.min(retained)
-    unresolved = missing["pmt_support"] < 30.0
+    unresolved = missing["pmt_support"] < track_counting.get().min_track_pmts
     model, event = comparison.model, comparison.event
     contrast = conditional(model.active, model.ix, event.charges_pe, mean) - conditional(
         model.active, model.ix, event.charges_pe, amplitude @ basis

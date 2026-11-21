@@ -1,6 +1,7 @@
 """Search the measured excess at possible downstream interaction points."""
 
 import numpy as np
+from wcte.counting import track_counting
 
 from analog_optical import contain_finite
 from aperture_score_starts import cone_scores, measurements
@@ -59,7 +60,7 @@ def cones(compare, incumbent, restored):
         grid = (
             direction_grid
             if tangent is None
-            else direction_grid[direction_grid @ tangent < np.cos(np.deg2rad(15.0))]
+            else direction_grid[direction_grid @ tangent < track_counting.get().merge_cosine]
         )
         score = cone_scores(
             model.pos - 1000.0 * point,
@@ -158,7 +159,7 @@ def endpoint_cones(compare, restored, *, shared=None):
             time, sigma, hits, derivative = measurements(compare, rates, centers_at_join)
             point, tangent = trajectory(prefix, np.ones(1))[:2]
             point, tangent = point[0], tangent[0]
-            dirs = grid[grid @ tangent < np.cos(np.deg2rad(15.0))]
+            dirs = grid[grid @ tangent < track_counting.get().merge_cosine]
             args = (
                 model.pos - point,
                 model.normals,

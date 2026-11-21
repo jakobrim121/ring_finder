@@ -8,6 +8,7 @@ from geometry import hardware_margin
 from material import material
 from source import raw
 from wctering.likelihood.constraints import direction
+from wcte.counting import track_counting
 
 
 def optimize(
@@ -90,7 +91,7 @@ def optimize(
                 support, full, other = support_score(
                     observed, observed - response * core, model.obs.offsets, model.obs.coefficients
                 )
-                scores.append((side * (support - 30.0) - 0.025) / 100.0)
+                scores.append((side * (support - track_counting.get().min_track_pmts) - 0.025) / 100.0)
                 gradient = (full + other) @ d_mean - response * (other @ derivative)
                 gradients.append((side / 100.0) * gradient * scale)
         previous = z.copy(), -ll, slope * scale, np.asarray(scores), np.asarray(gradients)

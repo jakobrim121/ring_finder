@@ -1,4 +1,4 @@
-"""Ask whether the 30-PMT support survives detector module correlations."""
+"""Estimate support and its uncertainty across detector modules."""
 
 import numpy as np
 

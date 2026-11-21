@@ -23,6 +23,7 @@ from resolved_ring_evidence import first_pulse_support
 from timed_optical import arrival
 from wctering.likelihood.geometry import NORMALS, UPPER
 from wctering.seeding.coherent_timing import C, N_GROUP, N_PHASE
+from wcte.counting import track_counting
 
 
 @dataclass(frozen=True)
@@ -564,7 +565,11 @@ def fit(event, model, geometry, basis, amplitude, winner, budget, *, bank=None):
             turn_deg=float(np.rad2deg(np.arccos(np.clip(paths[0].axis @ paths[1].axis, -1.0, 1.0)))),
         )
         reports.append(report)
-        if error >= 0.03 or set(fractions.argmax(1)) - {0} != {1, 2}:
+        if (
+            error >= 0.03
+            or report["turn_deg"] <= track_counting.get().track_merge_angle_deg
+            or set(fractions.argmax(1)) - {0} != {1, 2}
+        ):
             continue
         from gated_photon_time import log_density
         from predictive_score import log_probabilities
@@ -600,8 +605,8 @@ def fit(event, model, geometry, basis, amplitude, winner, budget, *, bank=None):
         )
         if (
             gain <= MARGIN
-            or min((row["lower_statistical"] for row in support)) < 30.0
-            or min((row["leave_one_module"] for row in support)) < 30.0
+            or min((row["lower_statistical"] for row in support)) < track_counting.get().min_track_pmts
+            or min((row["leave_one_module"] for row in support)) < track_counting.get().min_track_pmts
             or (report["within_module_gain"] <= 0.0)
         ):
             continue

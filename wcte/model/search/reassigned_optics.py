@@ -9,6 +9,7 @@ from gated_optical_fit import fit as fit_optical
 from module_optics import conditional, shapes
 from module_supported_ring import lower_bound
 from residual_joint_optics import path_from_geometry
+from wcte.counting import track_counting
 
 
 def verify(compare, old, tested, mean, old_mean, *, spread_support=False):
@@ -28,11 +29,11 @@ def verify(compare, old, tested, mean, old_mean, *, spread_support=False):
     contrast -= conditional(model.active, model.ix, event.charges_pe, old_mean)
     within = contrast.sum() - contrast.max(initial=0.0)
     # The retained cores have to be independently visible. Any third
-    # optical band on 30 additional PMTs keeps the larger hypothesis.
+    # optical band with countable independent PMT support keeps the larger hypothesis.
     accepted = (
         min(overlap) >= 0.62
-        and independent["pmt_support"] < 30.0
-        and min(r["lower_statistical"] for r in support) >= 30.0
+        and independent["pmt_support"] < track_counting.get().min_track_pmts
+        and min(r["lower_statistical"] for r in support) >= track_counting.get().min_track_pmts
         and within > 0.0
     )
     data = dict(

@@ -21,6 +21,7 @@ from timed_charged_light import projected_aperture
 from timed_optical import arrival
 from track_coordinates import fit as optimize
 from wctering.seeding.coherent_timing import C, N_GROUP, N_PHASE
+from wcte.counting import track_counting
 
 
 PION_ZERO_MEV = 134.9768
@@ -739,10 +740,10 @@ def fit(event, model, geometry, basis, amplitude, incumbent, budget):
         if compare is None or record["gain"] <= 0.0 or retained[main] < 0.65:
             continue
         # A resolved conversion arm must retain its counted light.
-        if max(support, default=0.0) >= 30.0:
+        if max(support, default=0.0) >= track_counting.get().min_track_pmts:
             continue
         primary_support = float(np.sum(1.0 - model.obs.no_source(means, np.clip(share, 0.0, 1.0))))
-        if primary_support < 30.0 or not np.any(share > 0.5):
+        if primary_support < track_counting.get().min_track_pmts or not np.any(share > 0.5):
             continue
         rates = (skies[:, model.ix] * (intensity / norm)[groups, None]).T
         modules = compare.likelihood(model, full_means, rates, fitted_time)

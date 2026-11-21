@@ -16,6 +16,7 @@ from residual_joint_optics import path_from_geometry
 from recoil_competitor import render
 from track_coordinates import fit as optimize
 from wctering.seeding.coherent_timing import N_PHASE
+from wcte.counting import track_counting
 
 
 def initial_parent(launch, join, mass, angle, water=None):
@@ -89,7 +90,7 @@ def nominate(event, model, geometry, amplitude, *, scan=False, fast=False, value
                         models[particles] = Coupled(*args, particles, 4, 4)
                     trial = models[particles]
                     for incoming in initial_parent(launch, join, parent, cones[1 - i][7], water):
-                        if incoming[3:6] @ child[3:6] >= np.cos(np.deg2rad(15.0)):
+                        if incoming[3:6] @ child[3:6] >= track_counting.get().merge_cosine:
                             continue
                         x = recoil_start(trial, np.r_[incoming, child[3:], logs])
                         if x is None or not feasible(trial, x) or trial.hardware_margin(x) <= 1e-5:
@@ -123,7 +124,7 @@ def nominate(event, model, geometry, amplitude, *, scan=False, fast=False, value
                         # Use the actual counted source for the fast seed
                         # screen. Leave room for the geometry to improve
                         # from this coarse integral before the final check.
-                        if min(support) >= (18.0 if fast else 25.0):
+                        if min(support) >= track_counting.get().scaled_support(18.0 if fast else 25.0):
                             ranked.append((ll, particles, x))
     if scan:
         from aperture_junction_seeds import nominate as timed_starts
@@ -224,7 +225,7 @@ def fit(event, model, geometry, basis, amplitude, bank, winner, single, budget):
         gain = rival.score - reference.score - delta.max(initial=0.0)
         evidence = comparison.resolved(reference, rival)
         record.update(gain=float(gain), evidence=evidence)
-        if gain <= MARGIN or evidence["lower_pmts"] < 30.0:
+        if gain <= MARGIN or evidence["lower_pmts"] < track_counting.get().min_track_pmts:
             continue
         if control is None and len(basis) == 2:
             control = fit_optical(event, geometry, model.bg, budget, strength=1.0)

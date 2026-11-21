@@ -10,9 +10,7 @@ from junction_coordinates import Junction
 from material import material
 from source import trajectory
 from track_coordinates import fit as fit_chart
-
-
-COSINE = np.cos(np.deg2rad(15.0))
+from wcte.counting import track_counting
 
 
 class OneLineage(Coupled):
@@ -25,7 +23,7 @@ class OneLineage(Coupled):
         outgoing = x[12:15]
         cosine = tangent[0] @ outgoing
         d_cosine = np.r_[outgoing @ derivative[0], tangent[0], np.zeros(len(x) - 15)]
-        return np.r_[values, cosine - COSINE], np.vstack([gradient, d_cosine])
+        return np.r_[values, cosine - track_counting.get().merge_cosine], np.vstack([gradient, d_cosine])
 
 
 def starting_paths(state, particles, masses):
@@ -36,8 +34,9 @@ def starting_paths(state, particles, masses):
     b = outgoing[3:6]
     transverse = b - (b @ a) * a
     norm = np.linalg.norm(transverse)
-    if norm > 1e-12 and a @ b < COSINE:
-        angle = np.deg2rad(13.0)
+    rules = track_counting.get()
+    if norm > 1e-12 and a @ b < rules.merge_cosine:
+        angle = np.deg2rad(max(0.0, rules.track_merge_angle_deg - 2.0))
         axis = np.cos(angle) * a + np.sin(angle) * transverse / norm
         x[12:15] = axis
         x[15:18] -= (x[15:18] @ axis) * axis

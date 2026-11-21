@@ -6,10 +6,11 @@ from bare_model import Model as Bare
 from chain_comparison import MARGIN, counted
 from chain_sources import paths
 from coupled_model import Model as Coupled
+from joined_segments import separated_directions
 from physical_pulse import profile
 from ring_supported import preserves_prompt
-from source import trajectory
 from terminal_track_seeds import pulse_support
+from wcte.counting import track_counting
 
 
 def restore(event, background, record):
@@ -67,13 +68,11 @@ def accept(event, single, alternatives, baseline_gain, *, extra_controls=()):
         a, b = [p for p, _ in paths(state["parameters"][:-2])]
         if min(a[9] * a[10], b[9] * b[10]) < 0.09 or "electron" in model.particles:
             continue
-        tangent = trajectory(a, np.ones(1))[1][0]
-        turn = np.arccos(np.clip(tangent @ b[3:6], -1.0, 1.0))
-        widths = np.hypot(np.exp(a[-1]), np.exp(b[-1]))
-        if turn <= np.deg2rad(15.0) + 2.0 * widths:
+        turn, resolved = separated_directions(model, state)
+        if not resolved:
             continue
         support = pulse_support(event, model, state, fractions)
-        if support is None or min(s["lower_statistical"] for s in support) < 30.0:
+        if support is None or min(s["lower_statistical"] for s in support) < track_counting.get().min_track_pmts:
             continue
         retained, lost = preserves_prompt(event, prior, (model, state, fractions))
         if not retained:
@@ -90,7 +89,7 @@ def accept(event, single, alternatives, baseline_gain, *, extra_controls=()):
         if alternate is None or 2.0 * (state["ll"] - alternate["ll"]) <= MARGIN:
             continue
         visibility = recoil = None
-        if support[weak]["pmt_support"] < 65.0:
+        if support[weak]["pmt_support"] < track_counting.get().scaled_support(65.0):
             visibility = below(model, state, weak, record["order"], 32)
             if visibility is not None and 2.0 * (state["ll"] - visibility["ll"]) <= MARGIN:
                 continue

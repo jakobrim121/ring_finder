@@ -4,6 +4,7 @@ import numpy as np
 
 from throughgoing import fit as fit_chord
 from wctering.likelihood.geometry import common_background
+from wcte.counting import track_counting
 
 
 def coherent_chord(line, span=2.1, *, relative=False):
@@ -63,12 +64,16 @@ def accepts_profile(record, span, *, relative=False):
         return False
     if record["chord"]["direct_yield_fraction"] < 0.55:
         return False
+    rules = track_counting.get()
     for row in record["competitors"]:
-        if row["photon_support"] < 30 or row["hard_support"] < 18:
+        if row["photon_support"] < rules.min_track_pmts or row["hard_support"] < rules.scaled_support(18):
             continue
         if row["opening_deg"] > 42.5 and row["width_deg"] >= 8.0 and (row["relative_timing_gain"] < 40.0):
             continue
-        displaced = row["axis_separation_deg"] >= 12.0 or row["transverse_displacement_m"] >= 0.2
+        displaced = (
+            row["axis_separation_deg"] >= rules.turn_offset(-3.0)
+            or row["transverse_displacement_m"] >= 0.2
+        )
         independent = row["gain"] >= 10.0 and row["relative_timing_gain"] >= 15.0
         strong_charge = row["gain"] >= 225.0 and row["relative_timing_gain"] >= -2.0
         if displaced and (independent or strong_charge):

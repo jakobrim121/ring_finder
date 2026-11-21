@@ -12,6 +12,7 @@ from gated_photon_time import series, wavefront
 from joined_segments import arc
 from physical_pulse import components, profile
 from residual_search import axis_grid
+from wcte.counting import track_counting
 from serial_refinement import leg_starts
 from source import trajectory
 from wctering.seeding.coherent_timing import C, N_GROUP, N_PHASE
@@ -193,7 +194,7 @@ def screened(event, model, state, *, broad=False, batch_shapes=False):
         rates, means, elapsed = components(event, model, state, separate_knockon=True, return_elapsed=True)
         clock = old["clock_ns"]
         terms = timing_slope_terms(time, low, high, rates, means + clock, sigma, offsets, coefficients)
-        axes = grid[grid @ tangent[0] < np.cos(np.deg2rad(18.0))]
+        axes = grid[grid @ tangent[0] < np.cos(np.deg2rad(track_counting.get().turn_offset(3.0)))]
         delta = model.pos - point[0]
         along = axes @ delta.T
         radial = np.sqrt(np.maximum(np.einsum("ij,ij->i", delta, delta) - along**2, 10.0))
@@ -278,7 +279,7 @@ def starts(event, model, state, *, broad=False, batch_shapes=False):
                     float(np.sum(1.0 - trial.obs.no_source(fit["means_hit"], f)))
                     for f in fit["posterior"][1:]
                 )
-                if support >= 14.0:
+                if support >= track_counting.get().scaled_support(14.0):
                     proposals.append((fit["ll"], rank, materials, x, support))
         if len(origins) == (10 if broad == "diverse" else 6):
             break
@@ -327,29 +328,35 @@ def qualify(
     from timed_two_track import grouped_pulse, restore
     from visibility_profile import fit as below_support
 
+    rules = track_counting.get()
+    minimum = rules.min_track_pmts
     angle, resolved = separated_directions(trial, state)
     detail = dict(turn_deg=float(np.rad2deg(angle)))
-    if (not resolved and not allow_profiled_turn) or set(fractions.argmax(1)) - {0} != {1, 2}:
+    if (
+        angle <= rules.merge_angle_rad
+        or (not resolved and not allow_profiled_turn)
+        or set(fractions.argmax(1)) - {0} != {1, 2}
+    ):
         return False, detail
     result = grouped_pulse(event, trial, state, [[0], [1]])
     if result is None:
         return False, detail
     timing, support = result
     detail["conditional_support"] = support
-    if min(row["lower_statistical"] for row in support) < 27.0:
+    if min(row["lower_statistical"] for row in support) < minimum:
         return False, detail
     if require_long:
         # This pass specifically searches for a sustained outgoing track.
         # Shorter branches were already tested by the calibrated short pass.
         x = state["parameters"]
-        if x[18] * x[19] < 0.22 or support[1]["leave_one_module"] < 42.0:
+        if x[18] * x[19] < 0.22 or support[1]["leave_one_module"] < rules.scaled_support(42.0):
             return False, detail
     if require_short:
         # A real upstream flash from an early hard collision can leave a
         # very short track. A long apparent incoming section is tested by
         # the existing continuation fit under its own matched null.
         x = state["parameters"]
-        if x[9] * x[10] > 0.105 or support[0]["leave_one_module"] < 30.0:
+        if x[9] * x[10] > 0.105 or support[0]["leave_one_module"] < minimum:
             return False, detail
     original = counted(*single)
     if original.shape[1] == 2:
@@ -395,7 +402,7 @@ def qualify(
             )
     if not distributed:
         return False, detail
-    if support[weak]["pmt_support"] < 65.0:
+    if support[weak]["pmt_support"] < track_counting.get().scaled_support(65.0):
         under = below_support(trial, state, weak, budget[0], budget[1], timed_event=event)
         detail["below_support"] = under
         if under is not None and 2.0 * (joint - under["ll"] - under["timing_ll"]) <= MARGIN:

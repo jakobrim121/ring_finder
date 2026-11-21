@@ -10,6 +10,7 @@ from physical_pulse import wavefront
 from serial_refinement import leg_starts
 from terminal_track_seeds import ridge_peaks
 from wctering.seeding.coherent_timing import C, N_GROUP, N_PHASE
+from wcte.counting import track_counting
 
 
 def entrance_intervals(event, geometry, port):
@@ -74,7 +75,7 @@ def nominate(event, model, geometry, amplitude, port, seed_parent):
         join = origin + span * axis
         delta = event.pmt_positions_mm - 1000.0 * join
         distance = np.linalg.norm(delta, axis=1)
-        allowed = grid[grid @ axis < np.cos(np.deg2rad(15.0))]
+        allowed = grid[grid @ axis < track_counting.get().merge_cosine]
         for mass in ("pion", "proton"):
             if mass not in singles:
                 singles[mass] = Coupled(*args, (mass,), 4, 4)
@@ -107,7 +108,7 @@ def nominate(event, model, geometry, amplitude, port, seed_parent):
                     window + 90.0,
                     (0.016, window / 1000.0 + 0.08),
                 ):
-                    if support < 14.0:
+                    if support < track_counting.get().scaled_support(14.0):
                         continue
                     for species in dict.fromkeys((mass, "pion", "proton")):
                         particles = mass, species
@@ -123,6 +124,6 @@ def nominate(event, model, geometry, amplitude, port, seed_parent):
                                 np.sum(1.0 - pair.obs.no_source(candidate["means_hit"], f.clip(0.0, 1.0)))
                                 for f in candidate["posterior"][1:]
                             ]
-                            if min(visible) >= 24.0:
+                            if min(visible) >= track_counting.get().scaled_support(24.0):
                                 trials.append((candidate["ll"], particles, x))
     return trials

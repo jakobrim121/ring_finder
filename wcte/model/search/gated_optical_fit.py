@@ -8,6 +8,7 @@ from joint_prompt_fit import Joint, wavefront
 from scipy.special import softmax
 from wctering.receiver.angular_panels import finite_integrate
 from wctering.receiver.finite_source import quadrature
+from wcte.counting import track_counting
 
 
 class PromptOptics(Joint):
@@ -137,7 +138,7 @@ def fit(event, geometry, background, budget, strength=0.55, extra_light=None, *,
     if set(shares.argmax(1)) - {0} != set(range(1, model.k + 1)):
         return None
     support = [float(np.sum(1.0 - model.obs.no_source(mean[model.ix], row))) for row in shares.T[1:]]
-    if min(support) < 30.0:
+    if min(support) < track_counting.get().min_track_pmts:
         return None
     return (
         ll,

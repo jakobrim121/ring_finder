@@ -4,6 +4,7 @@ import numpy as np
 
 from charge_starts import weighted_quantile
 from coherent_partition import prediction_time
+from wcte.counting import track_counting
 
 
 def closure(event, model, state, fractions, incumbent):
@@ -56,6 +57,6 @@ def test(event, alternatives, reference, margin):
         if groups is None:
             continue
         supported = all(
-            g["optical"] >= 0.70 and g["prompt"] >= 0.60 and g["independent_pmts"] < 18 for g in groups
+            g["optical"] >= 0.70 and g["prompt"] >= 0.60 and g["independent_pmts"] < track_counting.get().scaled_support(18) for g in groups
         )
         record.update(single_track_closure=groups, closure_supported=supported)

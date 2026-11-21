@@ -11,6 +11,7 @@ from joint_prompt_fit import wavefront
 from module_optics import conditional
 from module_supported_ring import lower_bound
 from resolved_ring_evidence import first_pulse_support
+from wcte.counting import track_counting
 
 
 def remains(compare, fit, mean, path, photons, budget, *, separate_yields=False):
@@ -81,7 +82,7 @@ def remains(compare, fit, mean, path, photons, budget, *, separate_yields=False)
             if (
                 report["gain"] > MARGIN
                 and report["module_gain"] > 0.0
-                and report["support"]["lower_statistical"] >= 30.0
+                and report["support"]["lower_statistical"] >= track_counting.get().min_track_pmts
             ):
                 return True, report
             continue
@@ -93,7 +94,7 @@ def remains(compare, fit, mean, path, photons, budget, *, separate_yields=False)
         if (
             report["gain"] > MARGIN
             and report["module_gain"] > 0.0
-            and report["support"]["lower_statistical"] >= 30.0
+            and report["support"]["lower_statistical"] >= track_counting.get().min_track_pmts
         ):
             return True, report
     return False, best
