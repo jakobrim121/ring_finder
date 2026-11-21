@@ -15,6 +15,7 @@ from wctering.seeding.optical_seed_fit import (
 from wctering.seeding.geometry import wcte_contains_vertex
 from wctering.seeding.folds import fold_ids_for_hits
 from wctering.seeding.arc_evidence import _amplitudes, _deviance
+from wcte.counting import track_counting
 
 SCHEMA = "wcte-optimized-optical-evidence-v1"
 
@@ -23,7 +24,7 @@ def fit_bank(ids, positions, charges, times, diagnostics, *, optimizer):
     """Optimize each multiplicity regardless of the earlier counter decision."""
     bank = {}
     summaries = {}
-    if len(ids) < 30:
+    if len(ids) < max(12, track_counting.get().min_unique_pmts):
         return bank, summaries
     for k in [1, 2, 3]:
         candidates = []

@@ -24,6 +24,7 @@ from wctering.seeding.continuation import (
     final_incumbents,
 )
 from wctering.seeding.matched import matched_bank, final_pool
+from wcte.counting import track_counting
 
 
 def without_partition(original):
@@ -34,7 +35,12 @@ def without_partition(original):
 
 
 def seeded_event(raw, event_id):
-    config = RingFinderConfig(mode="high_purity_one_ring")
+    minimum = track_counting.get().min_unique_pmts
+    config = RingFinderConfig(
+        mode="high_purity_one_ring",
+        minimum_observable_ring_pmts=minimum,
+        minimum_three_ring_pmts=minimum,
+    )
     event = prepare_event_arrays(
         event_id,
         raw["raw_pmt_ids"],
