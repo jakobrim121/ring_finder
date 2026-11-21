@@ -24,10 +24,11 @@ def fit_hits(
     the prompt peak. A supplied [low, high) window is used as-is by the
     timing likelihood. No event selection is performed.
 
-    Fitted track sections are counted using their effective PMT support.
-    Adjacent sections can share one ring if their estimated turn is at
-    most track_merge_angle_deg. Optical and timing evidence is also used
-    to select the final ring hypothesis.
+    min_track_pmts sets the support floor in optical, charged-track and
+    timed ring decisions. The two-cone seed still needs ten assigned PMTs
+    per cone. track_merge_angle_deg sets the largest turn counted as one
+    ring along a fitted trajectory. Nearby optical cones use the same cut.
+    Likelihood comparisons still decide whether an eligible ring is supported.
     """
     if incoming_particle not in PARTICLES:
         raise ValueError(f"Unsupported incoming particle {incoming_particle!r}")
